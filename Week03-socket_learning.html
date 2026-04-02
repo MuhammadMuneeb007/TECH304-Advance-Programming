@@ -1,0 +1,1885 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket Connection Animation Lab</title>
+  <style>
+    :root {
+      --bg: #f1efe8;
+      --panel: #fffdf7;
+      --ink: #1f242a;
+      --muted: #5c6774;
+      --line: #d4d9de;
+      --brand: #0e6e5f;
+      --brand-dark: #0a4f45;
+      --client: #26798b;
+      --server: #8b3e2f;
+      --ok: #1d8a4c;
+      --warn: #a06408;
+      --wire: #9aa4ad;
+      --packet: #ffd24f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 9%, rgba(38, 121, 139, 0.15), transparent 34%),
+        radial-gradient(circle at 88% 15%, rgba(139, 62, 47, 0.15), transparent 36%),
+        linear-gradient(180deg, #faf8f2, var(--bg));
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 14px 40px;
+    }
+
+    .hero {
+      border: 1px solid var(--line);
+      background: linear-gradient(120deg, #10453b, #0e6e5f 58%, #2f7d71);
+      color: #ecfffb;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 12px 28px rgba(18, 40, 35, 0.28);
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.35rem, 3.5vw, 2.2rem);
+    }
+
+    .hero p {
+      margin: 0;
+      line-height: 1.45;
+      max-width: 75ch;
+    }
+
+    .panel {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      box-shadow: 0 8px 20px rgba(32, 36, 42, 0.09);
+      padding: 14px;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(130px, 1fr));
+      gap: 10px;
+      margin: 10px 0 12px;
+      align-items: end;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #315066;
+      margin-bottom: 4px;
+    }
+
+    .field select {
+      width: 100%;
+      border: 1px solid #adc0cf;
+      border-radius: 8px;
+      padding: 8px;
+      font-weight: 600;
+      background: #fafdff;
+      color: #1e3f50;
+    }
+
+    .config-note {
+      margin: 0 0 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #c5d5e0;
+      background: #f6fbff;
+      color: #20465e;
+      font-size: 0.92rem;
+      line-height: 1.35;
+    }
+
+    .scene {
+      position: relative;
+      border: 1px solid #c9d0d6;
+      border-radius: 12px;
+      min-height: 320px;
+      background:
+        repeating-linear-gradient(90deg, #f8fafb 0 24px, #f4f7f9 24px 48px),
+        linear-gradient(180deg, #f8fbfd, #eef2f5);
+      overflow: hidden;
+    }
+
+    .scene-tag {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #92a4b3;
+      background: #f2f8fc;
+      color: #1c4a5f;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .title-row h2 {
+      margin: 0;
+      color: #173c48;
+      font-size: 1.2rem;
+    }
+
+    .chip {
+      border: 1px solid #8eb6be;
+      background: #e8f7fb;
+      color: #124e5c;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .device {
+      position: absolute;
+      bottom: 48px;
+      width: 180px;
+    }
+
+    .device.client {
+      left: 32px;
+      color: var(--client);
+    }
+
+    .device.server {
+      right: 32px;
+      color: var(--server);
+    }
+
+    .scene.mode-can .wire {
+      border-top-color: #cf7c27;
+      border-top-style: solid;
+    }
+
+    .scene.mode-can .monitor {
+      border-radius: 50%;
+      background: #fff6ea;
+      border-color: #a95f18;
+    }
+
+    .scene.mode-can .rack {
+      background: #fff1e8;
+      border-color: #a95f18;
+    }
+
+    .scene.mode-bluetooth .wire {
+      border-top-color: #2f8fbe;
+      border-top-style: dotted;
+      border-top-width: 5px;
+    }
+
+    .scene.mode-bluetooth .monitor,
+    .scene.mode-bluetooth .rack {
+      background: #edf8ff;
+      border-color: #2f8fbe;
+    }
+
+    .scene.mode-netlink .wire {
+      border-top-color: #5f4fb0;
+      border-top-style: double;
+      border-top-width: 6px;
+    }
+
+    .scene.mode-netlink .monitor,
+    .scene.mode-netlink .rack {
+      background: #f1efff;
+      border-color: #6d5ac9;
+    }
+
+    .scene.mode-packet .wire {
+      border-top-color: #4b8c2f;
+      border-top-style: dashed;
+      border-top-width: 5px;
+    }
+
+    .scene.mode-packet .monitor,
+    .scene.mode-packet .rack {
+      background: #f2faee;
+      border-color: #4b8c2f;
+    }
+
+    .monitor {
+      width: 170px;
+      height: 100px;
+      border: 4px solid currentColor;
+      border-radius: 8px;
+      background: #f4fafe;
+      position: relative;
+      margin: 0 auto;
+    }
+
+    .monitor::before {
+      content: "";
+      position: absolute;
+      inset: 9px;
+      border-radius: 4px;
+      border: 2px dashed currentColor;
+      opacity: 0.55;
+    }
+
+    .stand {
+      width: 52px;
+      height: 10px;
+      margin: 6px auto 0;
+      border-radius: 5px;
+      background: currentColor;
+    }
+
+    .rack {
+      width: 170px;
+      height: 118px;
+      border: 4px solid currentColor;
+      border-radius: 9px;
+      background: #fff6f3;
+      margin: 0 auto;
+      padding: 8px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .rack-bar {
+      border: 2px solid currentColor;
+      border-radius: 6px;
+      background: rgba(139, 62, 47, 0.08);
+    }
+
+    .device h3 {
+      text-align: center;
+      margin: 8px 0 0;
+      font-size: 0.98rem;
+      letter-spacing: 0.2px;
+    }
+
+    .socket-lights {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 7px;
+    }
+
+    .light {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      border: 1px solid #85909a;
+      background: #f1f3f5;
+      transition: transform 0.25s ease, background 0.25s ease;
+    }
+
+    .light.on {
+      background: #52d67c;
+      transform: scale(1.08);
+      border-color: #269446;
+    }
+
+    .wire {
+      position: absolute;
+      left: 225px;
+      right: 225px;
+      bottom: 152px;
+      border-top: 4px dashed var(--wire);
+      opacity: 0.75;
+    }
+
+    .packet {
+      position: absolute;
+      width: 82px;
+      padding: 5px 8px;
+      text-align: center;
+      border-radius: 999px;
+      background: var(--packet);
+      border: 1px solid #b78c00;
+      font-weight: 700;
+      font-size: 0.82rem;
+      bottom: 140px;
+      left: 235px;
+      opacity: 0;
+      transition: left 1.2s ease-in-out, opacity 0.2s ease;
+      box-shadow: 0 4px 8px rgba(100, 79, 6, 0.2);
+      pointer-events: none;
+    }
+
+    .packet.show {
+      opacity: 1;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--brand);
+      color: #ffffff;
+      transition: transform 0.14s ease, background 0.14s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      background: var(--brand-dark);
+    }
+
+    button.secondary {
+      background: #6f7e8c;
+    }
+
+    button.secondary:hover {
+      background: #55626f;
+    }
+
+    .status {
+      margin-top: 10px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: 1px solid #c6d2dc;
+      background: #f7fbff;
+      color: #25465b;
+      font-weight: 700;
+    }
+
+    .layout {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 14px;
+    }
+
+    .steps {
+      display: grid;
+      gap: 8px;
+    }
+
+    .step {
+      border: 1px solid var(--line);
+      border-left: 5px solid #bec7cf;
+      border-radius: 9px;
+      padding: 8px 9px;
+      background: #fcfefe;
+      color: #3f4a56;
+      font-weight: 600;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .step.active {
+      border-left-color: #0e6e5f;
+      background: #ebfaf7;
+      color: #0c4a40;
+    }
+
+    .log {
+      min-height: 260px;
+      border: 1px solid #1f2b33;
+      border-radius: 10px;
+      background: #0f161a;
+      color: #d7f2ff;
+      font-family: Consolas, Monaco, monospace;
+      padding: 12px;
+      white-space: pre-line;
+      overflow: auto;
+    }
+
+    .legend {
+      margin-top: 10px;
+      color: var(--muted);
+      line-height: 1.4;
+      font-size: 0.95rem;
+    }
+
+    .good {
+      color: var(--ok);
+    }
+
+    .warn {
+      color: var(--warn);
+    }
+
+    .ref-panel {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #ffffff;
+      box-shadow: 0 8px 20px rgba(32, 36, 42, 0.09);
+      padding: 14px;
+    }
+
+    .ref-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .ref-header h2 {
+      margin: 0;
+      color: #1d4352;
+      font-size: 1.2rem;
+    }
+
+    .ref-intro {
+      margin: 0 0 10px;
+      color: #415462;
+      line-height: 1.4;
+    }
+
+    .ref-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid #d7dde2;
+      border-radius: 10px;
+      margin-top: 8px;
+      background: #fbfdff;
+    }
+
+    .ref-table {
+      width: 100%;
+      min-width: 860px;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    .ref-table th,
+    .ref-table td {
+      border-bottom: 1px solid #dfe5ea;
+      padding: 9px 10px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    .ref-table th {
+      background: #eaf2f8;
+      color: #173f52;
+      font-size: 0.86rem;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+
+    .ref-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .pill-mini {
+      display: inline-block;
+      font-size: 0.74rem;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 2px 8px;
+      border: 1px solid #8ba9c0;
+      color: #18445a;
+      background: #e8f4ff;
+    }
+
+    .pill-mini.primary {
+      border-color: #67a37e;
+      color: #194e32;
+      background: #e7f8ee;
+    }
+
+    details.reference {
+      margin-top: 10px;
+      border: 1px solid #d8e0e7;
+      border-radius: 10px;
+      padding: 8px;
+      background: #fcfeff;
+    }
+
+    details.reference > summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: #1e4a5e;
+      padding: 2px 0;
+    }
+
+    .learning-grid {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .learn-card {
+      border: 1px solid #d4dde5;
+      border-radius: 10px;
+      background: #f8fbff;
+      padding: 10px;
+    }
+
+    .learn-card h3 {
+      margin: 0 0 6px;
+      font-size: 0.98rem;
+      color: #1e4254;
+    }
+
+    .learn-card ul {
+      margin: 0;
+      padding-left: 18px;
+      color: #3d505f;
+    }
+
+    .combo-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 0.92rem;
+    }
+
+    .combo-table td,
+    .combo-table th {
+      border: 1px solid #d6e0e8;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .combo-table th {
+      background: #ebf3fa;
+      color: #1a4254;
+    }
+
+    .advanced.hidden {
+      display: none;
+    }
+
+    .url-panel {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #ffffff;
+      box-shadow: 0 8px 20px rgba(32, 36, 42, 0.09);
+      padding: 14px;
+    }
+
+    .url-grid {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .url-grid input {
+      border: 1px solid #adc0cf;
+      border-radius: 8px;
+      padding: 9px;
+      font-size: 0.95rem;
+      color: #1e3f50;
+      background: #fafdff;
+    }
+
+    .url-help {
+      margin: 8px 0 0;
+      color: #485b69;
+      font-size: 0.92rem;
+    }
+
+    .url-components {
+      margin-top: 10px;
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    .url-components th,
+    .url-components td {
+      border: 1px solid #d6e0e8;
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .url-components th {
+      width: 210px;
+      background: #ebf3fa;
+      color: #1a4254;
+    }
+
+    .url-examples {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .example-btn {
+      text-align: left;
+      width: 100%;
+      border: 1px solid #9eb7cb;
+      background: #f2f8ff;
+      color: #184157;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .example-btn:hover {
+      background: #e5f1ff;
+    }
+
+    .example-note {
+      margin-top: 8px;
+      border: 1px solid #cedce8;
+      background: #f9fcff;
+      border-radius: 8px;
+      padding: 9px;
+      color: #395162;
+      min-height: 44px;
+    }
+
+    @media (max-width: 900px) {
+      .config-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .learning-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .url-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .scene {
+        min-height: 360px;
+      }
+
+      .wire {
+        left: 188px;
+        right: 188px;
+      }
+
+      .packet {
+        left: 198px;
+      }
+
+      .device {
+        width: 150px;
+      }
+
+      .monitor,
+      .rack {
+        width: 140px;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .config-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .device.client {
+        left: 10px;
+      }
+
+      .device.server {
+        right: 10px;
+      }
+
+      .wire {
+        left: 150px;
+        right: 150px;
+      }
+
+      .packet {
+        left: 148px;
+        width: 76px;
+        font-size: 0.75rem;
+      }
+
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>Socket Programming Visual Lab</h1>
+      <p>
+        Watch the full journey: server socket created, client connects, TCP handshake completes,
+        data moves both ways, and connection closes cleanly.
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="title-row">
+        <h2>Animated Connection Scene</h2>
+        <span class="chip">Interactive Classroom Demo</span>
+      </div>
+
+      <div class="config-grid">
+        <div class="field">
+          <label for="familySelect">socket_family</label>
+          <select id="familySelect">
+            <option value="AF_INET" selected>AF_INET</option>
+            <option value="AF_INET6">AF_INET6</option>
+            <option value="AF_UNIX">AF_UNIX</option>
+            <option value="AF_CAN">AF_CAN</option>
+            <option value="AF_RDS">AF_RDS</option>
+            <option value="AF_PACKET">AF_PACKET</option>
+            <option value="AF_BLUETOOTH">AF_BLUETOOTH</option>
+            <option value="AF_NETLINK">AF_NETLINK</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="typeSelect">socket_type</label>
+          <select id="typeSelect">
+            <option value="SOCK_STREAM" selected>SOCK_STREAM</option>
+            <option value="SOCK_DGRAM">SOCK_DGRAM</option>
+            <option value="SOCK_RAW">SOCK_RAW</option>
+            <option value="SOCK_SEQPACKET">SOCK_SEQPACKET</option>
+            <option value="SOCK_RDM">SOCK_RDM</option>
+            <option value="SOCK_NONBLOCK">SOCK_NONBLOCK (flag)</option>
+            <option value="SOCK_CLOEXEC">SOCK_CLOEXEC (flag)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="protocolSelect">protocol</label>
+          <select id="protocolSelect"></select>
+        </div>
+
+        <button id="applyConfig">Apply Socket Config</button>
+      </div>
+
+      <p class="config-note" id="configNote">Choose family/type/protocol and click Apply Socket Config.</p>
+
+      <div class="scene" id="scene">
+        <div class="scene-tag" id="sceneTag">IPv4 Network Mode</div>
+        <div class="device client" id="clientDevice">
+          <div class="monitor"></div>
+          <h3 id="clientTitle">Client Computer</h3>
+          <div class="socket-lights">
+            <span class="light" id="clientSocket"></span>
+            <span class="light" id="clientConnected"></span>
+            <span class="light" id="clientData"></span>
+          </div>
+        </div>
+
+        <div class="wire"></div>
+        <div class="packet" id="packet">SYN</div>
+
+        <div class="device server" id="serverDevice">
+          <div class="rack">
+            <div class="rack-bar"></div>
+            <div class="rack-bar"></div>
+            <div class="rack-bar"></div>
+          </div>
+          <h3 id="serverTitle">Server Machine</h3>
+          <div class="socket-lights">
+            <span class="light" id="serverSocket"></span>
+            <span class="light" id="serverListening"></span>
+            <span class="light" id="serverData"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="playAll">Play Full Animation</button>
+        <button id="nextStep">Next Step</button>
+        <button id="pause" class="secondary">Pause</button>
+        <button id="reset" class="secondary">Reset</button>
+      </div>
+
+      <div id="statusText" class="status">Ready. Press Play Full Animation.</div>
+
+      <div class="layout">
+        <div>
+          <div class="steps" id="stepsList"></div>
+          <p class="legend">
+            Lights represent socket states: first light means socket created, second means connected/listening,
+            third means data transfer happened.
+          </p>
+        </div>
+
+        <div>
+          <div class="log" id="logBox">$ demo ready\n</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ref-panel">
+      <div class="ref-header">
+        <h2>Complete Socket Learning Reference</h2>
+        <button id="toggleBeginner" class="secondary">Show Beginner Essentials Only</button>
+      </div>
+      <p class="ref-intro">
+        Use this reference while running the animation. The first table explains address family,
+        the second table explains communication style, and the third table explains protocol selection.
+      </p>
+
+      <details class="reference" open>
+        <summary>1) Socket Family Table</summary>
+        <div class="ref-table-wrap">
+          <table class="ref-table">
+            <thead>
+              <tr>
+                <th>Family</th>
+                <th>Meaning</th>
+                <th>Default?</th>
+                <th>Address format / example</th>
+                <th>Purpose</th>
+                <th>Common use case</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="beginner">
+                <td><span class="pill-mini primary">AF_INET</span></td>
+                <td>IPv4 Internet addresses</td>
+                <td>Yes, most common in teaching</td>
+                <td>("127.0.0.1", 5000)</td>
+                <td>Network communication using IPv4</td>
+                <td>Client-server apps, web apps, chat apps, file transfer</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">AF_INET6</span></td>
+                <td>IPv6 Internet addresses</td>
+                <td>No</td>
+                <td>("::1", 5000)</td>
+                <td>Network communication using IPv6</td>
+                <td>Modern networks, future-proof systems, large-scale internet services</td>
+              </tr>
+              <tr class="beginner">
+                <td><span class="pill-mini">AF_UNIX</span></td>
+                <td>Unix local socket</td>
+                <td>No</td>
+                <td>"/tmp/mysocket"</td>
+                <td>Communication between processes on the same machine</td>
+                <td>Local IPC on Linux/macOS, fast communication between services</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">AF_CAN</span></td>
+                <td>Controller Area Network</td>
+                <td>No</td>
+                <td>CAN interface and identifier</td>
+                <td>Communication in CAN bus systems</td>
+                <td>Cars, industrial controllers, embedded systems</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">AF_RDS</span></td>
+                <td>Reliable Datagram Sockets</td>
+                <td>No</td>
+                <td>Specialized addressing</td>
+                <td>Reliable datagram-based communication</td>
+                <td>Specialized cluster/network systems</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">AF_PACKET</span></td>
+                <td>Direct packet-level interface on Linux</td>
+                <td>No</td>
+                <td>Network interface level</td>
+                <td>Access raw packets at link layer</td>
+                <td>Packet sniffing, network analysis, security tools</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">AF_BLUETOOTH</span></td>
+                <td>Bluetooth communication</td>
+                <td>No</td>
+                <td>Bluetooth device addresses</td>
+                <td>Wireless communication over Bluetooth</td>
+                <td>IoT devices, wireless peripherals</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">AF_NETLINK</span></td>
+                <td>Kernel-user communication on Linux</td>
+                <td>No</td>
+                <td>Kernel interface</td>
+                <td>Communication between user programs and Linux kernel subsystems</td>
+                <td>System/network management tools</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <details class="reference" open>
+        <summary>2) Socket Type Table</summary>
+        <div class="ref-table-wrap">
+          <table class="ref-table">
+            <thead>
+              <tr>
+                <th>Socket type</th>
+                <th>Meaning</th>
+                <th>Default in examples?</th>
+                <th>Usually maps to</th>
+                <th>Communication style</th>
+                <th>Purpose</th>
+                <th>Common use case</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="beginner">
+                <td><span class="pill-mini primary">SOCK_STREAM</span></td>
+                <td>Stream socket</td>
+                <td>Yes</td>
+                <td>TCP</td>
+                <td>Connection-oriented, reliable, ordered</td>
+                <td>Continuous data stream between two endpoints</td>
+                <td>Web servers, chat systems, client-server apps</td>
+              </tr>
+              <tr class="beginner">
+                <td><span class="pill-mini">SOCK_DGRAM</span></td>
+                <td>Datagram socket</td>
+                <td>No</td>
+                <td>UDP</td>
+                <td>Connectionless, faster, not guaranteed</td>
+                <td>Send separate packets/messages</td>
+                <td>DNS, video streaming, online games</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">SOCK_RAW</span></td>
+                <td>Raw socket</td>
+                <td>No</td>
+                <td>Raw IP / packet access</td>
+                <td>Very low-level access</td>
+                <td>Manual packet handling</td>
+                <td>Security tools, packet sniffers, protocol testing</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">SOCK_SEQPACKET</span></td>
+                <td>Sequential packet socket</td>
+                <td>No</td>
+                <td>Depends on family</td>
+                <td>Connection-oriented, preserves message boundaries</td>
+                <td>Reliable message-based communication</td>
+                <td>Advanced IPC / special OS-level systems</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">SOCK_RDM</span></td>
+                <td>Reliably delivered messages</td>
+                <td>No</td>
+                <td>Rarely used</td>
+                <td>Message-based reliable delivery</td>
+                <td>Specialized reliable messaging</td>
+                <td>Rare / advanced networking</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">SOCK_NONBLOCK</span></td>
+                <td>Non-blocking flag</td>
+                <td>No</td>
+                <td>Flag, not main type by itself</td>
+                <td>Operations do not wait</td>
+                <td>Faster async-style behavior</td>
+                <td>High-performance servers</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">SOCK_CLOEXEC</span></td>
+                <td>Close-on-exec flag</td>
+                <td>No</td>
+                <td>Flag</td>
+                <td>Auto close on process exec</td>
+                <td>Resource safety</td>
+                <td>Secure system programming</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <details class="reference" open>
+        <summary>3) Protocol Table</summary>
+        <div class="ref-table-wrap">
+          <table class="ref-table">
+            <thead>
+              <tr>
+                <th>Protocol value / constant</th>
+                <th>Meaning</th>
+                <th>Usually used with</th>
+                <th>Purpose</th>
+                <th>Use case</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="beginner">
+                <td><span class="pill-mini primary">0</span></td>
+                <td>Default protocol chosen automatically</td>
+                <td>Any family/type combo</td>
+                <td>Simplest and most common choice</td>
+                <td>Almost all beginner programs</td>
+              </tr>
+              <tr class="beginner">
+                <td><span class="pill-mini">IPPROTO_TCP</span></td>
+                <td>TCP</td>
+                <td>SOCK_STREAM</td>
+                <td>Reliable transport</td>
+                <td>Web, chat, client-server apps</td>
+              </tr>
+              <tr class="beginner">
+                <td><span class="pill-mini">IPPROTO_UDP</span></td>
+                <td>UDP</td>
+                <td>SOCK_DGRAM</td>
+                <td>Fast packet-based transport</td>
+                <td>Streaming, games, DNS</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">IPPROTO_ICMP</span></td>
+                <td>ICMP</td>
+                <td>Often raw sockets</td>
+                <td>Control and error messages</td>
+                <td>Ping tools, diagnostics</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">IPPROTO_RAW</span></td>
+                <td>Raw IP</td>
+                <td>SOCK_RAW</td>
+                <td>Manual packet creation</td>
+                <td>Security tools, protocol experiments</td>
+              </tr>
+              <tr class="advanced">
+                <td><span class="pill-mini">IPPROTO_IPV6</span></td>
+                <td>IPv6 protocol layer</td>
+                <td>IPv6 sockets</td>
+                <td>IPv6-specific handling</td>
+                <td>Advanced IPv6 networking</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <div class="learning-grid">
+        <article class="learn-card">
+          <h3>Easy Explanation For Students</h3>
+          <ul>
+            <li>AF_INET: use IPv4 address + port.</li>
+            <li>AF_INET6: use IPv6 address + port.</li>
+            <li>AF_UNIX: use a file path instead of IP address.</li>
+            <li>AF_CAN: used in vehicles and embedded systems.</li>
+            <li>Others are more specialized.</li>
+            <li>Most important beginner family: socket.AF_INET.</li>
+            <li>SOCK_STREAM: like a phone call, reliable continuous stream.</li>
+            <li>SOCK_DGRAM: like sending separate letters/messages.</li>
+            <li>SOCK_RAW: direct low-level network internals.</li>
+          </ul>
+        </article>
+
+        <article class="learn-card">
+          <h3>Most Important Beginner Combinations</h3>
+          <table class="combo-table">
+            <thead>
+              <tr>
+                <th>Combination</th>
+                <th>Meaning</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>AF_INET + SOCK_STREAM</td>
+                <td>IPv4 TCP socket</td>
+              </tr>
+              <tr>
+                <td>AF_INET + SOCK_DGRAM</td>
+                <td>IPv4 UDP socket</td>
+              </tr>
+              <tr>
+                <td>AF_INET6 + SOCK_STREAM</td>
+                <td>IPv6 TCP socket</td>
+              </tr>
+              <tr>
+                <td>AF_UNIX + SOCK_STREAM</td>
+                <td>Local machine stream socket</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="margin: 8px 0 0; color: #435462; line-height: 1.35;">
+            Reminder: protocol is usually 0, which means the OS automatically picks the right one.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="url-panel">
+      <div class="ref-header">
+        <h2>URL Parser Lab</h2>
+        <span class="chip">Break URL Into Components</span>
+      </div>
+      <p class="ref-intro">
+        Enter a complete URL and this parser will break it into protocol, host, port, path,
+        query parameters, and fragment. This is useful before sending requests in client-server apps.
+      </p>
+
+      <div class="url-grid">
+        <input id="urlInput" type="text" value="https://www.example.com:8080/products/item?id=42&lang=en#reviews" aria-label="URL input">
+        <button id="parseUrl">Parse URL</button>
+        <button id="clearUrl" class="secondary">Clear</button>
+      </div>
+      <p class="url-help">Tip: If no protocol is given, https:// is assumed automatically.</p>
+
+      <table class="url-components">
+        <tbody>
+          <tr><th>Full URL</th><td id="urlFull">-</td></tr>
+          <tr><th>Protocol (scheme)</th><td id="urlProtocol">-</td></tr>
+          <tr><th>Hostname</th><td id="urlHost">-</td></tr>
+          <tr><th>Port</th><td id="urlPort">-</td></tr>
+          <tr><th>Pathname</th><td id="urlPath">-</td></tr>
+          <tr><th>Query string</th><td id="urlQuery">-</td></tr>
+          <tr><th>Query parameters</th><td id="urlParams">-</td></tr>
+          <tr><th>Fragment (hash)</th><td id="urlHash">-</td></tr>
+          <tr><th>Origin</th><td id="urlOrigin">-</td></tr>
+        </tbody>
+      </table>
+
+      <div class="url-examples">
+        <button class="example-btn" data-url="https://shop.learnnet.org:8443/courses/python?level=beginner&sort=popular#week3" data-note="HTTPS example with custom port, path, query parameters, and a page fragment.">Example 1: Web app URL with path, query, and fragment</button>
+        <button class="example-btn" data-url="ftp://files.example.net/public/docs/report.pdf" data-note="FTP example showing a file path with no query and no fragment.">Example 2: File transfer URL</button>
+        <button class="example-btn" data-url="http://localhost:5001/chat/send?user=alice&room=networking" data-note="Local development URL often used in socket and API experiments.">Example 3: Localhost development URL</button>
+      </div>
+      <div class="example-note" id="exampleNote">Click an example to auto-fill and parse it.</div>
+    </section>
+  </main>
+
+  <script>
+    const scene = document.getElementById("scene");
+    const packet = document.getElementById("packet");
+    const clientDevice = document.getElementById("clientDevice");
+    const serverDevice = document.getElementById("serverDevice");
+    const sceneTag = document.getElementById("sceneTag");
+    const clientTitle = document.getElementById("clientTitle");
+    const serverTitle = document.getElementById("serverTitle");
+    const logBox = document.getElementById("logBox");
+    const statusText = document.getElementById("statusText");
+    const stepsList = document.getElementById("stepsList");
+    const configNote = document.getElementById("configNote");
+
+    const familySelect = document.getElementById("familySelect");
+    const typeSelect = document.getElementById("typeSelect");
+    const protocolSelect = document.getElementById("protocolSelect");
+    const urlInput = document.getElementById("urlInput");
+    const exampleNote = document.getElementById("exampleNote");
+
+    const clientSocket = document.getElementById("clientSocket");
+    const clientConnected = document.getElementById("clientConnected");
+    const clientData = document.getElementById("clientData");
+    const serverSocket = document.getElementById("serverSocket");
+    const serverListening = document.getElementById("serverListening");
+    const serverData = document.getElementById("serverData");
+
+    const familyMeta = {
+      AF_INET: {
+        endpoint: "127.0.0.1:65432",
+        note: "IPv4 internet sockets",
+        mode: "mode-ipv4",
+        tag: "IPv4 Network Mode",
+        clientLabel: "Client Computer",
+        serverLabel: "Server Machine"
+      },
+      AF_INET6: {
+        endpoint: "[::1]:65432",
+        note: "IPv6 internet sockets",
+        mode: "mode-ipv6",
+        tag: "IPv6 Network Mode",
+        clientLabel: "IPv6 Client",
+        serverLabel: "IPv6 Server"
+      },
+      AF_UNIX: {
+        endpoint: "/tmp/socket-demo",
+        note: "Local IPC on same machine",
+        mode: "mode-unix",
+        tag: "Local Process Mode",
+        clientLabel: "Local Process A",
+        serverLabel: "Local Process B"
+      },
+      AF_CAN: {
+        endpoint: "can0",
+        note: "Controller Area Network bus",
+        mode: "mode-can",
+        tag: "Vehicle CAN Bus Mode",
+        clientLabel: "Car ECU",
+        serverLabel: "Vehicle Controller"
+      },
+      AF_RDS: {
+        endpoint: "rds://nodeA",
+        note: "Reliable Datagram Sockets",
+        mode: "mode-rds",
+        tag: "Cluster RDS Mode",
+        clientLabel: "Cluster Node A",
+        serverLabel: "Cluster Node B"
+      },
+      AF_PACKET: {
+        endpoint: "eth0 (link-layer)",
+        note: "Direct packet-level interface on Linux",
+        mode: "mode-packet",
+        tag: "Packet Sniffer Mode",
+        clientLabel: "Packet Analyzer",
+        serverLabel: "Network Interface"
+      },
+      AF_BLUETOOTH: {
+        endpoint: "BT:01:23:45:67:89",
+        note: "Wireless communication over Bluetooth",
+        mode: "mode-bluetooth",
+        tag: "Bluetooth Wireless Mode",
+        clientLabel: "Phone / Host",
+        serverLabel: "Bluetooth Device"
+      },
+      AF_NETLINK: {
+        endpoint: "kernel netlink channel",
+        note: "User space to Linux kernel communication",
+        mode: "mode-netlink",
+        tag: "Kernel Communication Mode",
+        clientLabel: "User Space App",
+        serverLabel: "Linux Kernel"
+      }
+    };
+
+    const typeProtocolOptions = {
+      SOCK_STREAM: [
+        { value: "0", label: "0 (default)" },
+        { value: "TCP", label: "TCP" }
+      ],
+      SOCK_DGRAM: [
+        { value: "0", label: "0 (default)" },
+        { value: "UDP", label: "UDP" }
+      ],
+      SOCK_RAW: [
+        { value: "0", label: "0 (default)" },
+        { value: "RAW", label: "RAW" }
+      ],
+      SOCK_SEQPACKET: [
+        { value: "0", label: "0 (default)" },
+        { value: "SCTP", label: "SCTP" }
+      ],
+      SOCK_RDM: [
+        { value: "0", label: "0 (default)" },
+        { value: "RDM", label: "RDM" }
+      ],
+      SOCK_NONBLOCK: [
+        { value: "0", label: "0 (default)" },
+        { value: "TCP", label: "TCP" }
+      ],
+      SOCK_CLOEXEC: [
+        { value: "0", label: "0 (default)" },
+        { value: "TCP", label: "TCP" }
+      ]
+    };
+
+    let steps = [];
+    let current = -1;
+    let timer = null;
+    let beginnerOnly = false;
+
+    function hidePacket() {
+      packet.classList.remove("show");
+    }
+
+    function getPacketPositions() {
+      const sceneRect = scene.getBoundingClientRect();
+      const clientRect = clientDevice.getBoundingClientRect();
+      const serverRect = serverDevice.getBoundingClientRect();
+      const packetWidth = packet.offsetWidth;
+
+      const clientX = clientRect.right - sceneRect.left + 10;
+      const serverX = serverRect.left - sceneRect.left - packetWidth - 10;
+
+      return { clientX, serverX };
+    }
+
+    function movePacket(label, toServer, tone) {
+      if (tone === "udp") {
+        packet.style.background = "#7de3f4";
+        packet.style.borderColor = "#0e7d93";
+      } else if (tone === "raw") {
+        packet.style.background = "#ff9f80";
+        packet.style.borderColor = "#953619";
+      } else {
+        packet.style.background = "#ffd24f";
+        packet.style.borderColor = "#b78c00";
+      }
+
+      packet.textContent = label;
+      packet.classList.add("show");
+
+      const { clientX, serverX } = getPacketPositions();
+      packet.style.left = (toServer ? clientX : serverX) + "px";
+      void packet.offsetWidth;
+
+      if (toServer) {
+        packet.style.left = serverX + "px";
+      } else {
+        packet.style.left = clientX + "px";
+      }
+    }
+
+    function appendLog(text) {
+      logBox.textContent += text + "\n";
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function renderSteps() {
+      stepsList.innerHTML = "";
+      steps.forEach((step, index) => {
+        const item = document.createElement("div");
+        item.className = "step" + (index === current ? " active" : "");
+        item.textContent = step.title;
+        stepsList.appendChild(item);
+      });
+    }
+
+    function clearLights() {
+      [
+        clientSocket,
+        clientConnected,
+        clientData,
+        serverSocket,
+        serverListening,
+        serverData
+      ].forEach((el) => el.classList.remove("on"));
+      statusText.classList.remove("good", "warn");
+    }
+
+    function selectedConfig() {
+      return {
+        family: familySelect.value,
+        socketType: typeSelect.value,
+        protocol: protocolSelect.value
+      };
+    }
+
+    function protocolName(config) {
+      if (config.protocol !== "0") {
+        return config.protocol;
+      }
+      if (
+        config.socketType === "SOCK_STREAM" ||
+        config.socketType === "SOCK_NONBLOCK" ||
+        config.socketType === "SOCK_CLOEXEC"
+      ) {
+        return "TCP";
+      }
+      if (config.socketType === "SOCK_DGRAM") {
+        return "UDP";
+      }
+      if (config.socketType === "SOCK_SEQPACKET") {
+        return "SCTP";
+      }
+      if (config.socketType === "SOCK_RDM") {
+        return "RDM";
+      }
+      return "RAW";
+    }
+
+    function applySceneMode(familyInfo) {
+      const allModes = [
+        "mode-ipv4",
+        "mode-ipv6",
+        "mode-unix",
+        "mode-can",
+        "mode-rds",
+        "mode-packet",
+        "mode-bluetooth",
+        "mode-netlink"
+      ];
+
+      allModes.forEach((mode) => scene.classList.remove(mode));
+      scene.classList.add(familyInfo.mode);
+      sceneTag.textContent = familyInfo.tag;
+      clientTitle.textContent = familyInfo.clientLabel;
+      serverTitle.textContent = familyInfo.serverLabel;
+    }
+
+    function refreshProtocolOptions() {
+      const options = typeProtocolOptions[typeSelect.value] || [];
+      protocolSelect.innerHTML = "";
+      options.forEach((opt) => {
+        const option = document.createElement("option");
+        option.value = opt.value;
+        option.textContent = opt.label;
+        protocolSelect.appendChild(option);
+      });
+    }
+
+    function buildSteps(config) {
+      const familyInfo = familyMeta[config.family];
+      const proto = protocolName(config);
+      const address = familyInfo.endpoint;
+
+      const baseCreate = {
+        title: "1. Server creates socket and starts waiting",
+        status: "Server created socket and is ready on " + address + ".",
+        log:
+          "Server: socket(" +
+          config.family +
+          ", " +
+          config.socketType +
+          ", " +
+          config.protocol +
+          "); bind(" +
+          address +
+          ");",
+        action: () => {
+          serverSocket.classList.add("on");
+          serverListening.classList.add("on");
+          hidePacket();
+        }
+      };
+
+      const clientCreate = {
+        title: "2. Client creates matching socket",
+        status: "Client created compatible socket settings.",
+        log:
+          "Client: socket(" +
+          config.family +
+          ", " +
+          config.socketType +
+          ", " +
+          config.protocol +
+          ")",
+        action: () => {
+          clientSocket.classList.add("on");
+          hidePacket();
+        }
+      };
+
+      if (
+        config.socketType === "SOCK_STREAM" ||
+        config.socketType === "SOCK_NONBLOCK" ||
+        config.socketType === "SOCK_CLOEXEC"
+      ) {
+        const streamNote =
+          config.socketType === "SOCK_NONBLOCK"
+            ? "Socket uses non-blocking behavior (async style)."
+            : config.socketType === "SOCK_CLOEXEC"
+            ? "Socket auto-closes on exec for process safety."
+            : "TCP channel established with reliable stream behavior.";
+
+        return [
+          baseCreate,
+          clientCreate,
+          {
+            title: "3. SYN from client",
+            status: "Handshake step 1: client asks to connect.",
+            log: "Client -> Server: SYN",
+            action: () => movePacket("SYN", true, "tcp")
+          },
+          {
+            title: "4. SYN-ACK from server",
+            status: "Handshake step 2: server acknowledges and agrees.",
+            log: "Server -> Client: SYN-ACK",
+            action: () => movePacket("SYN-ACK", false, "tcp")
+          },
+          {
+            title: "5. ACK from client, connection established",
+            status: streamNote,
+            log: "Client -> Server: ACK | connected",
+            action: () => {
+              movePacket("ACK", true, "tcp");
+              clientConnected.classList.add("on");
+            }
+          },
+          {
+            title: "6. Stream data request",
+            status: "Client sends stream payload.",
+            log: "Client -> Server: DATA",
+            action: () => {
+              movePacket("DATA", true, "tcp");
+              clientData.classList.add("on");
+              serverData.classList.add("on");
+            }
+          },
+          {
+            title: "7. Stream data response",
+            status: "Server replies over the same connection.",
+            log: "Server -> Client: DATA",
+            action: () => movePacket("DATA", false, "tcp")
+          },
+          {
+            title: "8. Close socket",
+            status: "Connection closed cleanly.",
+            log: "Client: close(); Server: close()",
+            action: () => {
+              hidePacket();
+              clientConnected.classList.remove("on");
+              clientData.classList.remove("on");
+              serverData.classList.remove("on");
+              serverListening.classList.remove("on");
+              statusText.classList.add("good");
+            }
+          }
+        ];
+      }
+
+      if (config.socketType === "SOCK_SEQPACKET") {
+        return [
+          baseCreate,
+          clientCreate,
+          {
+            title: "3. Connection setup for sequenced packets",
+            status: "Connection-oriented setup with preserved message boundaries.",
+            log: "Client -> Server: CONNECT (SEQPACKET)",
+            action: () => {
+              movePacket("SEQ-CONN", true, "tcp");
+              clientConnected.classList.add("on");
+            }
+          },
+          {
+            title: "4. Reliable sequenced message",
+            status: "Message arrives in order and as a complete packet.",
+            log: "Client -> Server: SEQ MESSAGE",
+            action: () => {
+              movePacket("SEQ-MSG", true, "tcp");
+              clientData.classList.add("on");
+              serverData.classList.add("on");
+            }
+          },
+          {
+            title: "5. Server sequenced reply",
+            status: "Server returns one complete packet message.",
+            log: "Server -> Client: SEQ MESSAGE",
+            action: () => movePacket("SEQ-MSG", false, "tcp")
+          },
+          {
+            title: "6. Close sequenced session",
+            status: "Sequential packet session finished.",
+            log: "SEQPACKET close()",
+            action: () => {
+              hidePacket();
+              clientConnected.classList.remove("on");
+              clientData.classList.remove("on");
+              serverData.classList.remove("on");
+              serverListening.classList.remove("on");
+              statusText.classList.add("good");
+            }
+          }
+        ];
+      }
+
+      if (config.socketType === "SOCK_RDM") {
+        return [
+          baseCreate,
+          clientCreate,
+          {
+            title: "3. Reliable datagram send",
+            status: "Message-oriented send with reliable delivery behavior.",
+            log: "Client -> Server: RDM MSG",
+            action: () => {
+              movePacket("RDM", true, "udp");
+              clientData.classList.add("on");
+              serverData.classList.add("on");
+            }
+          },
+          {
+            title: "4. Reliable datagram response",
+            status: "Server returns a reliable message packet.",
+            log: "Server -> Client: RDM MSG",
+            action: () => movePacket("RDM", false, "udp")
+          },
+          {
+            title: "5. End RDM exchange",
+            status: "Reliable datagram exchange complete.",
+            log: "RDM session complete",
+            action: () => {
+              hidePacket();
+              clientData.classList.remove("on");
+              serverData.classList.remove("on");
+              statusText.classList.add("good");
+            }
+          }
+        ];
+      }
+
+      if (config.socketType === "SOCK_DGRAM") {
+        return [
+          baseCreate,
+          clientCreate,
+          {
+            title: "3. Client sends datagram",
+            status: "No handshake. Datagram is sent immediately.",
+            log: "Client -> Server: UDP DATAGRAM",
+            action: () => {
+              movePacket("DGRAM", true, "udp");
+              clientData.classList.add("on");
+              serverData.classList.add("on");
+            }
+          },
+          {
+            title: "4. Server sends reply datagram",
+            status: "Server responds with another datagram.",
+            log: "Server -> Client: UDP DATAGRAM",
+            action: () => movePacket("DGRAM", false, "udp")
+          },
+          {
+            title: "5. End datagram exchange",
+            status: "Exchange complete without connection state.",
+            log: "Sockets remain connectionless; close when done.",
+            action: () => {
+              hidePacket();
+              clientData.classList.remove("on");
+              serverData.classList.remove("on");
+              statusText.classList.add("good");
+            }
+          }
+        ];
+      }
+
+      return [
+        baseCreate,
+        clientCreate,
+        {
+          title: "3. Craft raw packet",
+          status: "Client crafts packet headers manually (advanced mode).",
+          log: "Client: build raw headers + payload",
+          action: () => {
+            clientConnected.classList.add("on");
+            movePacket("RAW", true, "raw");
+          }
+        },
+        {
+          title: "4. Server inspects packet",
+          status: "Server parses raw frame; application protocol is custom.",
+          log: "Server: parse headers/checksum/payload",
+          action: () => {
+            serverData.classList.add("on");
+            clientData.classList.add("on");
+          }
+        },
+        {
+          title: "5. Optional response packet",
+          status: "Response can be sent as another raw packet.",
+          log: "Server -> Client: RAW",
+          action: () => movePacket("RAW", false, "raw")
+        },
+        {
+          title: "6. End raw socket session",
+          status: "Raw socket session complete.",
+          log: "Raw socket closed",
+          action: () => {
+            hidePacket();
+            clientConnected.classList.remove("on");
+            clientData.classList.remove("on");
+            serverData.classList.remove("on");
+            serverListening.classList.remove("on");
+            statusText.classList.add("good");
+          }
+        }
+      ];
+    }
+
+    function runStep(index) {
+      if (index < 0 || index >= steps.length) {
+        return;
+      }
+
+      current = index;
+      const step = steps[index];
+      step.action();
+      statusText.textContent = step.status;
+      appendLog(step.log);
+      renderSteps();
+    }
+
+    function playAll() {
+      resetDemo();
+      timer = setInterval(() => {
+        if (current >= steps.length - 1) {
+          clearInterval(timer);
+          timer = null;
+          return;
+        }
+        runStep(current + 1);
+      }, 1450);
+    }
+
+    function pauseDemo() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+        statusText.textContent = "Paused. Continue with Next Step or Play Full Animation.";
+        statusText.classList.add("warn");
+      }
+    }
+
+    function resetDemo() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      current = -1;
+      hidePacket();
+      clearLights();
+      renderSteps();
+      logBox.textContent = "$ demo reset\n";
+      statusText.textContent = "Ready. Press Play Full Animation.";
+    }
+
+    function applyConfiguration() {
+      const config = selectedConfig();
+      const familyInfo = familyMeta[config.family];
+      const proto = protocolName(config);
+
+      applySceneMode(familyInfo);
+      steps = buildSteps(config);
+      configNote.textContent =
+        "Config: " +
+        config.family +
+        " | " +
+        config.socketType +
+        " | protocol=" +
+        config.protocol +
+        " (" +
+        proto +
+        ") - " +
+        familyInfo.note +
+        ". Endpoint: " +
+        familyInfo.endpoint;
+
+      resetDemo();
+      appendLog(
+        "$ active config -> socket(" +
+          config.family +
+          ", " +
+          config.socketType +
+          ", " +
+          config.protocol +
+          ")"
+      );
+    }
+
+    function applyReferenceFilter() {
+      const advancedRows = document.querySelectorAll(".advanced");
+      advancedRows.forEach((row) => {
+        row.classList.toggle("hidden", beginnerOnly);
+      });
+
+      const toggleBtn = document.getElementById("toggleBeginner");
+      toggleBtn.textContent = beginnerOnly
+        ? "Show Full Reference"
+        : "Show Beginner Essentials Only";
+    }
+
+    function normalizeUrl(value) {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return "";
+      }
+      if (/^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(trimmed)) {
+        return trimmed;
+      }
+      return "https://" + trimmed;
+    }
+
+    function setUrlRow(id, value) {
+      document.getElementById(id).textContent = value || "-";
+    }
+
+    function parseUrlAndRender(inputValue) {
+      const prepared = normalizeUrl(inputValue);
+      if (!prepared) {
+        setUrlRow("urlFull", "-");
+        setUrlRow("urlProtocol", "-");
+        setUrlRow("urlHost", "-");
+        setUrlRow("urlPort", "-");
+        setUrlRow("urlPath", "-");
+        setUrlRow("urlQuery", "-");
+        setUrlRow("urlParams", "-");
+        setUrlRow("urlHash", "-");
+        setUrlRow("urlOrigin", "-");
+        return;
+      }
+
+      try {
+        const parsed = new URL(prepared);
+        const paramsEntries = [];
+        parsed.searchParams.forEach((v, k) => {
+          paramsEntries.push(k + "=" + v);
+        });
+
+        setUrlRow("urlFull", parsed.href);
+        setUrlRow("urlProtocol", parsed.protocol.replace(":", ""));
+        setUrlRow("urlHost", parsed.hostname);
+        setUrlRow("urlPort", parsed.port || "(default)");
+        setUrlRow("urlPath", parsed.pathname || "/");
+        setUrlRow("urlQuery", parsed.search || "(none)");
+        setUrlRow("urlParams", paramsEntries.length ? paramsEntries.join(", ") : "(none)");
+        setUrlRow("urlHash", parsed.hash || "(none)");
+        setUrlRow("urlOrigin", parsed.origin);
+      } catch (err) {
+        setUrlRow("urlFull", "Invalid URL. Please enter a full valid URL.");
+        setUrlRow("urlProtocol", "-");
+        setUrlRow("urlHost", "-");
+        setUrlRow("urlPort", "-");
+        setUrlRow("urlPath", "-");
+        setUrlRow("urlQuery", "-");
+        setUrlRow("urlParams", "-");
+        setUrlRow("urlHash", "-");
+        setUrlRow("urlOrigin", "-");
+      }
+    }
+
+    document.getElementById("playAll").addEventListener("click", playAll);
+    document.getElementById("nextStep").addEventListener("click", () => {
+      if (current < steps.length - 1) {
+        runStep(current + 1);
+      }
+    });
+    document.getElementById("pause").addEventListener("click", pauseDemo);
+    document.getElementById("reset").addEventListener("click", resetDemo);
+    document.getElementById("applyConfig").addEventListener("click", applyConfiguration);
+    document.getElementById("parseUrl").addEventListener("click", () => {
+      parseUrlAndRender(urlInput.value);
+    });
+    document.getElementById("clearUrl").addEventListener("click", () => {
+      urlInput.value = "";
+      parseUrlAndRender("");
+      exampleNote.textContent = "Click an example to auto-fill and parse it.";
+    });
+
+    document.querySelectorAll(".example-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const sample = btn.getAttribute("data-url") || "";
+        const note = btn.getAttribute("data-note") || "";
+        urlInput.value = sample;
+        parseUrlAndRender(sample);
+        exampleNote.textContent = note;
+      });
+    });
+    document.getElementById("toggleBeginner").addEventListener("click", () => {
+      beginnerOnly = !beginnerOnly;
+      applyReferenceFilter();
+    });
+
+    typeSelect.addEventListener("change", refreshProtocolOptions);
+    window.addEventListener("resize", hidePacket);
+
+    refreshProtocolOptions();
+    applyConfiguration();
+    applyReferenceFilter();
+    parseUrlAndRender(urlInput.value);
+  </script>
+</body>
+</html>
