@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TEC 304 – Advance Programming Quiz (Weeks 1–3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f4f1ec;--surface:#fdfcfa;--card:#ffffff;
+  --border:#ddd8cf;--border2:#c9c3b8;
+  --accent:#2563eb;--accent-h:#1d4ed8;
+  --green:#15803d;--green-bg:#f0fdf4;--green-br:#86efac;
+  --red:#b91c1c;--red-bg:#fef2f2;--red-br:#fca5a5;
+  --sel-bg:#eff6ff;--sel-br:#93c5fd;
+  --text:#1c1917;--text2:#44403c;--muted:#78716c;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --sh-md:0 4px 16px rgba(0,0,0,.10);
+}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Source Sans 3',sans-serif;
+  min-height:100vh;padding-bottom:110px;
+  -webkit-user-select:none;-moz-user-select:none;user-select:none;
+  -webkit-touch-callout:none;cursor:default;
+}
+@media print{html,body{display:none!important;}}
+
+/* ── Watermark ── */
+#wm{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;}
+#wm canvas{width:100%;height:100%;opacity:.04;}
+
+/* ── Header ── */
+header{
+  background:var(--surface);border-bottom:2px solid var(--border);
+  padding:36px 24px 28px;text-align:center;position:relative;overflow:hidden;
+}
+header::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(-45deg,transparent,transparent 22px,rgba(37,99,235,.022) 22px,rgba(37,99,235,.022) 23px);
+}
+header>*{position:relative;}
+header h1{font-family:'Lora',serif;font-size:clamp(1.5rem,3.5vw,2.1rem);color:var(--text);letter-spacing:-.3px;}
+header h1 span{color:var(--accent);}
+header p{color:var(--muted);margin-top:6px;font-size:.95rem;}
+.tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px;}
+.tag{background:var(--sel-bg);border:1px solid var(--sel-br);color:var(--accent);border-radius:9999px;padding:3px 14px;font-size:.78rem;font-weight:600;}
+
+/* ── Progress ── */
+#progress-wrap{
+  position:sticky;top:0;z-index:40;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:10px 24px;display:flex;align-items:center;gap:14px;
+  box-shadow:var(--sh);
+}
+#pbar-out{flex:1;height:7px;background:var(--border);border-radius:9999px;overflow:hidden;}
+#pbar-in{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#7c3aed);border-radius:9999px;transition:width .4s;}
+#plabel{font-size:.82rem;color:var(--muted);white-space:nowrap;font-weight:600;}
+#score-live{font-size:.82rem;color:var(--text2);font-weight:600;white-space:nowrap;display:none;}
+#score-live.show{display:block;}
+
+/* ── Main ── */
+main{max-width:800px;margin:32px auto;padding:0 20px;}
+
+/* ── Week divider ── */
+.wk-div{display:flex;align-items:center;gap:12px;margin:40px 0 18px;}
+.wk-line{flex:1;height:1px;background:var(--border2);}
+.wk-lbl{font-family:'Lora',serif;font-size:.86rem;font-weight:700;color:var(--muted);white-space:nowrap;padding:0 4px;}
+
+/* ── Card ── */
+.card{
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:12px;padding:22px 22px 18px;margin-bottom:14px;
+  box-shadow:var(--sh);transition:border-color .2s,border-left .2s;
+}
+.card.answered{border-color:var(--border2);}
+.card.rv-ok {border-left:4px solid var(--green);}
+.card.rv-bad{border-left:4px solid var(--red);}
+
+.qh{display:flex;align-items:flex-start;gap:12px;}
+.qn{
+  min-width:32px;height:32px;background:var(--bg);border:1.5px solid var(--border2);
+  border-radius:8px;display:grid;place-items:center;
+  font-size:.76rem;font-weight:700;color:var(--muted);flex-shrink:0;margin-top:2px;
+  font-family:'JetBrains Mono',monospace;
+}
+.qt{font-size:.97rem;line-height:1.65;color:var(--text);}
+code{
+  background:#f1f5f9;color:#0f4c8a;padding:2px 7px;border-radius:5px;
+  font-family:'JetBrains Mono',monospace;font-size:.85em;border:1px solid #e2e8f0;
+}
+
+/* ── Options ── */
+.options{margin-top:14px;display:flex;flex-direction:column;gap:8px;}
+.ob{
+  display:flex;align-items:center;gap:11px;
+  background:var(--bg);border:1.5px solid var(--border);
+  border-radius:9px;padding:10px 14px;cursor:pointer;
+  transition:all .18s;text-align:left;color:var(--text2);
+  font-family:'Source Sans 3',sans-serif;font-size:.92rem;width:100%;
+}
+.ob:hover:not(:disabled){background:var(--sel-bg);border-color:var(--sel-br);color:var(--accent);transform:translateX(4px);}
+.ob:disabled{cursor:default;transform:none!important;}
+.ob.sel{background:var(--sel-bg);border-color:var(--accent);color:var(--accent);font-weight:600;}
+.ob.rv-ok{background:var(--green-bg);border-color:var(--green-br);color:var(--green);font-weight:700;}
+.ob.rv-bad{background:var(--red-bg);border-color:var(--red-br);color:var(--red);}
+.ol{
+  min-width:26px;height:26px;border:1.5px solid var(--border2);
+  border-radius:6px;display:grid;place-items:center;
+  font-size:.75rem;font-weight:700;color:var(--muted);flex-shrink:0;
+  font-family:'JetBrains Mono',monospace;
+}
+.ob.sel  .ol{border-color:var(--accent);color:var(--accent);}
+.ob.rv-ok .ol{border-color:var(--green);color:var(--green);}
+.ob.rv-bad .ol{border-color:var(--red);color:var(--red);}
+
+/* ── Answer badge ── */
+.ab{
+  display:none;margin-top:10px;border-radius:8px;padding:8px 14px;
+  font-size:.85rem;font-weight:600;
+}
+.ab.show{display:block;}
+.ab.ok {background:var(--green-bg);border:1px solid var(--green-br);color:var(--green);}
+.ab.bad{background:var(--red-bg);border:1px solid var(--red-br);color:var(--red);}
+
+/* ── Score panel ── */
+#score-panel{
+  display:none;text-align:center;
+  background:var(--card);border:2px solid var(--border2);
+  border-radius:16px;padding:36px 24px;margin-top:40px;
+  box-shadow:var(--sh-md);
+}
+#score-panel.show{display:block;}
+#score-circle{
+  width:100px;height:100px;border-radius:50%;border:4px solid var(--accent);
+  display:grid;place-items:center;margin:0 auto 18px;
+  font-family:'Lora',serif;font-size:1.9rem;font-weight:700;color:var(--accent);
+}
+#score-title{font-family:'Lora',serif;font-size:1.35rem;color:var(--text);}
+#score-msg{color:var(--muted);margin-top:8px;font-size:.95rem;}
+
+/* ── Unlock banner ── */
+#unlock-banner{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  width:min(760px,calc(100vw - 32px));z-index:100;
+}
+#ui{
+  background:var(--card);border:1.5px solid var(--border2);
+  border-radius:12px;padding:14px 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  box-shadow:var(--sh-md);
+}
+#ui span{color:var(--text2);font-size:.9rem;font-weight:500;}
+#btn-open{
+  background:var(--accent);color:#fff;border:none;border-radius:8px;
+  padding:9px 20px;font-weight:700;cursor:pointer;
+  font-family:'Source Sans 3',sans-serif;font-size:.88rem;white-space:nowrap;
+  transition:background .2s;flex-shrink:0;
+}
+#btn-open:hover{background:var(--accent-h);}
+#unlocked-bar{
+  display:none;background:var(--green-bg);border:1.5px solid var(--green-br);
+  border-radius:12px;padding:12px 20px;color:var(--green);
+  font-size:.9rem;font-weight:600;text-align:center;box-shadow:var(--sh);
+}
+#unlocked-bar.show{display:block;}
+
+/* ── Modal ── */
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;place-items:center;backdrop-filter:blur(4px);}
+#overlay.show{display:grid;}
+#modal{
+  background:var(--card);border:1.5px solid var(--border2);
+  border-radius:18px;padding:36px 32px;
+  width:min(400px,92vw);text-align:center;
+  box-shadow:var(--sh-md);position:relative;
+  animation:pop .2s ease;
+}
+@keyframes pop{from{transform:scale(.92);opacity:0;}to{transform:scale(1);opacity:1;}}
+#modal h2{font-family:'Lora',serif;color:var(--text);margin-bottom:8px;font-size:1.3rem;}
+#modal p{color:var(--muted);font-size:.88rem;margin-bottom:22px;}
+#pw-input{
+  width:100%;background:var(--bg);border:1.5px solid var(--border2);
+  color:var(--text);border-radius:9px;padding:12px 16px;
+  font-size:1rem;outline:none;font-family:'Source Sans 3',sans-serif;
+  transition:border-color .2s;
+  -webkit-user-select:text;-moz-user-select:text;user-select:text;
+}
+#pw-input:focus{border-color:var(--accent);}
+#pw-err{color:var(--red);font-size:.83rem;margin-top:8px;min-height:20px;}
+#pw-submit{
+  margin-top:18px;width:100%;background:var(--accent);color:#fff;border:none;
+  border-radius:9px;padding:12px;font-family:'Source Sans 3',sans-serif;
+  font-size:1rem;font-weight:700;cursor:pointer;transition:background .2s;
+}
+#pw-submit:hover{background:var(--accent-h);}
+#pw-close{
+  position:absolute;top:14px;right:18px;background:none;border:none;
+  cursor:pointer;color:var(--muted);font-size:1.3rem;line-height:1;
+}
+</style>
+</head>
+<body>
+
+<div id="wm"><canvas id="wm-c"></canvas></div>
+
+<header>
+  <h1>TEC 304 – <span>Advance Programming</span></h1>
+  <p>Weeks 1–3 Assessment &nbsp;·&nbsp; 50 Questions</p>
+  <div class="tags">
+    <span class="tag">Week 01 · Built-ins · Iterators · Data Structures</span>
+    <span class="tag">Week 02 · Paradigms · Functional · Lambda</span>
+    <span class="tag">Week 03 · Socket Programming</span>
+  </div>
+</header>
+
+<div id="progress-wrap">
+  <div id="pbar-out"><div id="pbar-in"></div></div>
+  <div id="plabel">0 / 50 answered</div>
+  <div id="score-live"></div>
+</div>
+
+<main id="quiz-root"></main>
+<main>
+  <div id="score-panel">
+    <div id="score-circle">–</div>
+    <h2 id="score-title"></h2>
+    <p id="score-msg"></p>
+  </div>
+</main>
+
+<div id="unlock-banner">
+  <div id="ui">
+    <span>🔒 Answers are hidden — enter the instructor password to reveal them.</span>
+    <button id="btn-open">Unlock Answers</button>
+  </div>
+  <div id="unlocked-bar">✅ Answer key unlocked — correct answers are now highlighted on every question.</div>
+</div>
+
+<div id="overlay">
+  <div id="modal">
+    <button id="pw-close" title="Close">✕</button>
+    <h2>🔑 Unlock Answer Key</h2>
+    <p>Enter the instructor password to reveal all correct answers.</p>
+    <input type="password" id="pw-input" placeholder="Password…" autocomplete="off" spellcheck="false"/>
+    <div id="pw-err"></div>
+    <button id="pw-submit">Unlock</button>
+  </div>
+</div>
+
+<script>
+/* ── Question Bank ───────────────────────────────── */
+const WEEKS=[
+  {label:"Week 01 — Built-in Functions · Iterators · Generators · Data Structures",from:1,to:15},
+  {label:"Week 02 — Programming Paradigms · Functional Programming · Lambda",from:16,to:32},
+  {label:"Week 03 — Socket Programming",from:33,to:50},
+];
+const QS=[
+  // WEEK 01
+  {t:"What is the output of <code>sum([5, 2, 9, 1, 7]) / len([5, 2, 9, 1, 7])</code>?",
+   o:["4.8","5.0","24","4.0"],c:0},
+  {t:"Which built-in returns <strong>True</strong> only when <em>every</em> element is truthy?",
+   o:["any()","all()","sum()","max()"],c:1},
+  {t:"What does <code>any([False, True, True])</code> return?",
+   o:["False","True","None","Error"],c:1},
+  {t:"What exception is raised when <code>next()</code> is called on an <strong>exhausted</strong> iterator?",
+   o:["IndexError","ValueError","StopIteration","OverflowError"],c:2},
+  {t:"Which keyword turns a regular function into a <strong>generator</strong>?",
+   o:["return","yield","next","iter"],c:1},
+  {t:"Which Python data structure is <strong>immutable</strong>?",
+   o:["List","Set","Dictionary","Tuple"],c:3},
+  {t:"Which data structure does <strong>not</strong> allow duplicate elements?",
+   o:["List","Tuple","Set","Dictionary"],c:2},
+  {t:"What does this code print?<br><code>it = iter([1,2,3,4,5])<br>next(it)<br>print(next(it))</code>",
+   o:["1","2","3","StopIteration error"],c:1},
+  {t:"What is the main <strong>memory advantage</strong> of a generator over a list for very large data?",
+   o:["Generators are faster for small data","Generators load all data at once","Generators produce one item at a time — no full memory load","Generators allow duplicate elements"],c:2},
+  {t:"Which decorator creates a <strong>read-only property</strong> in a Python class?",
+   o:["@staticmethod","@property","@classmethod","@readonly"],c:1},
+  {t:"Which built-in converts an iterable into an <strong>iterator object</strong>?",
+   o:["list()","iter()","next()","enumerate()"],c:1},
+  {t:"Given <code>numbers = (1, 2, 3); new = numbers + (4,)</code> — what does <code>print(numbers)</code> output?",
+   o:["(1, 2, 3, 4)","(1, 2, 3)","Error","[1, 2, 3]"],c:1},
+  {t:"In the <code>Qualean</code> class, which values are <strong>valid</strong> for <code>real_num</code>?",
+   o:["Any integer","0 to 1 only","−1, 0, or 1","−1 to 1 (continuous)"],c:2},
+  {t:"A TensorFlow tensor has shape <code>(3, 2, 5)</code>. How many <strong>dimensions</strong> does it have?",
+   o:["2","3","5","30"],c:1},
+  {t:"A generator uses <code>yield</code>. What happens when <code>yield</code> is reached?",
+   o:["Raises StopIteration","Pauses, returns a value, then resumes on the next call","Terminates the function permanently","Returns all remaining values as a list"],c:1},
+  // WEEK 02
+  {t:"Which paradigm organises code around <strong>objects combining data and behaviour</strong>?",
+   o:["Procedural","Functional","Object-Oriented Programming","Logic Programming"],c:2},
+  {t:"A function that <strong>takes another function as an argument</strong> is called:",
+   o:["A lambda function","A higher-order function","A pure function","A recursive function"],c:1},
+  {t:"Which best describes a <strong>pure function</strong>?",
+   o:["No parameters","Returns a value without modifying any external state","Uses global variables","Always prints output"],c:1},
+  {t:"What is the output of <code>list(map(lambda x: x*x, [1, 2, 3, 4]))</code>?",
+   o:["[1, 2, 3, 4]","[1, 4, 9, 16]","[2, 4, 6, 8]","[1, 8, 27, 64]"],c:1},
+  {t:"What does <code>filter()</code> do to an iterable?",
+   o:["Transforms every element","Combines all elements into one value","Keeps only elements that match a condition","Sorts elements ascending"],c:2},
+  {t:"What does <code>reduce(lambda a, b: a + b, [1, 2, 3, 4, 5])</code> return?",
+   o:["[1, 3, 6, 10, 15]","15","5","[15]"],c:1},
+  {t:"Which module must be imported to use <code>reduce()</code>?",
+   o:["itertools","operator","functools","collections"],c:2},
+  {t:"What is the output of <code>(lambda a, b: a + b)(3, 5)</code>?",
+   o:["35","8","&lt;lambda&gt;","Error"],c:1},
+  {t:"Which is a core characteristic of <strong>functional programming</strong>?",
+   o:["Freely modifying global state","Immutability — create new data instead of changing existing data","Deep class inheritance","Step-by-step imperative procedures"],c:1},
+  {t:"What does <strong>event-driven programming</strong> mean?",
+   o:["Flow depends on maths functions","Flow depends on events such as button clicks or user input","You describe what result you want","Code is organised around objects"],c:1},
+  {t:"What is the output of <code>list(filter(lambda x: x%2==0, [1,2,3,4,5]))</code>?",
+   o:["[1, 3, 5]","[2, 4]","[1, 2, 3, 4, 5]","[0, 2, 4]"],c:1},
+  {t:"After <code>add_one(5)</code> below, what are the return value and <code>count</code>?<br><code>count=0<br>def add_one(x):<br>&nbsp;&nbsp;global count; count+=1; return x+1</code>",
+   o:["returns 6, count=0","returns 6, count=1","returns 5, count=1","returns 5, count=0"],c:1},
+  {t:"Which style describes <strong>what</strong> result you want, not step-by-step <strong>how</strong>?",
+   o:["Procedural","Imperative","Declarative","Object-Oriented"],c:2},
+  {t:"Which best describes a <strong>lambda function</strong>?",
+   o:["A named function that must use return","An anonymous function defined inline as a single expression","A class method","A generator function using yield"],c:1},
+  {t:"What is the output of <code>list(map(lambda a,b: a+b, [1,2], [10,20]))</code>?",
+   o:["[1,2,10,20]","[11, 22]","[10, 20]","Error"],c:1},
+  {t:"Which paradigm is typically associated with <strong>Prolog</strong>?",
+   o:["Procedural","Functional","Logic Programming","Object-Oriented"],c:2},
+  {t:"Why is the function below <strong>non-pure</strong>?<br><code>numbers=[]<br>def save(x): numbers.append(x); return x*2</code>",
+   o:["It returns a value","It modifies the external <code>numbers</code> list — a side effect","It creates a local copy","It raises an exception"],c:1},
+  // WEEK 03
+  {t:"Which address family is the <strong>default</strong> in beginner socket programs?",
+   o:["AF_INET6","AF_UNIX","AF_INET","AF_BLUETOOTH"],c:2},
+  {t:"Which socket type gives a <strong>reliable, connection-oriented</strong> stream?",
+   o:["SOCK_DGRAM","SOCK_RAW","SOCK_STREAM","SOCK_RDM"],c:2},
+  {t:"Which protocol does <code>SOCK_DGRAM</code> typically use?",
+   o:["TCP","UDP","ICMP","FTP"],c:1},
+  {t:"What is the correct address format for <code>AF_INET</code>?",
+   o:['"/tmp/mysocket"','"::1"','("127.0.0.1", 5000)',"CAN interface identifier"],c:2},
+  {t:"Which method <strong>retries until all bytes are sent</strong> or an error occurs?",
+   o:["send()","sendto()","sendall()","write()"],c:2},
+  {t:"Which method <strong>returns both the data AND the sender's address</strong>?",
+   o:["recv()","recvfrom()","recvall()","listen()"],c:1},
+  {t:"Which protocol constant pairs with <code>SOCK_STREAM</code>?",
+   o:["IPPROTO_UDP","IPPROTO_ICMP","IPPROTO_TCP","IPPROTO_RAW"],c:2},
+  {t:"Which address family lets processes on the <strong>same machine</strong> communicate via a file path?",
+   o:["AF_INET","AF_INET6","AF_UNIX","AF_CAN"],c:2},
+  {t:"What does <code>connect()</code> do?",
+   o:["Binds a socket to a local address","Listens for incoming connections","Establishes a connection to a remote socket (used by the client)","Sends data immediately"],c:2},
+  {t:"Passing <code>0</code> as the <strong>protocol argument</strong> to <code>socket()</code> means:",
+   o:["Use ICMP","Disable the socket","Let the OS automatically choose the default protocol","Use raw sockets"],c:2},
+  {t:"Which socket type is used for <strong>packet sniffing</strong> and security tools?",
+   o:["SOCK_STREAM","SOCK_DGRAM","SOCK_RAW","SOCK_SEQPACKET"],c:2},
+  {t:"Which address family handles <strong>vehicles and industrial CAN bus</strong> systems?",
+   o:["AF_INET","AF_UNIX","AF_BLUETOOTH","AF_CAN"],c:3},
+  {t:"Which method sends data to a specific address <strong>without establishing a connection</strong>?",
+   o:["send()","sendall()","sendto()","connect()"],c:2},
+  {t:"In TCP client-server, which side calls <code>connect()</code>?",
+   o:["The server","The client","Both sides","Neither side"],c:1},
+  {t:"What does <code>recv(1024)</code> do?",
+   o:["Receive exactly 1024 bytes","Read <strong>up to</strong> 1024 bytes from the buffer","Receive 1024 packets","Set timeout to 1024 ms"],c:1},
+  {t:"Which socket type is <strong>connection-oriented AND preserves message boundaries</strong>?",
+   o:["SOCK_STREAM","SOCK_DGRAM","SOCK_SEQPACKET","SOCK_RAW"],c:2},
+  {t:"What is <code>IPPROTO_ICMP</code> primarily used for?",
+   o:["File transfer","Reliable ordered streaming","Control/error messages — ping and diagnostics","Database connections"],c:2},
+  {t:"Which address family supports <strong>modern IPv6</strong> networks?",
+   o:["AF_INET","AF_UNIX","AF_CAN","AF_INET6"],c:3},
+];
+
+const L=["A","B","C","D"];
+const HASH="fe3f3beb167ed92a16c6e24b0e716842fe85ad2e86ee5c85f8f69fbb98cde39d";
+
+async function sha256(s){
+  const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+
+/* ── Persistent state ── */
+const SK="tec304_v3";
+function load(){try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}catch(_){}return{choices:{},unlocked:false};}
+function save(){try{localStorage.setItem(SK,JSON.stringify(ST));}catch(_){}}
+let ST=load();
+
+/* ── Watermark ── */
+function drawWM(){
+  const c=document.getElementById("wm-c");
+  const dpr=window.devicePixelRatio||1;
+  c.width=window.innerWidth*dpr;c.height=window.innerHeight*dpr;
+  const ctx=c.getContext("2d");ctx.scale(dpr,dpr);
+  const txt=`TEC 304 Quiz · ${new Date().toLocaleString()} · CONFIDENTIAL`;
+  ctx.font="bold 14px 'Source Sans 3',sans-serif";
+  ctx.fillStyle="#2563eb";
+  ctx.save();
+  ctx.translate(window.innerWidth/2,window.innerHeight/2);
+  ctx.rotate(-Math.PI/7);
+  for(let y=-window.innerHeight;y<window.innerHeight;y+=200)
+    for(let x=-window.innerWidth;x<window.innerWidth;x+=260)
+      ctx.fillText(txt,x,y);
+  ctx.restore();
+}
+drawWM();window.addEventListener("resize",drawWM);
+
+/* ── Stats ── */
+function stats(){
+  let a=0,cor=0;
+  QS.forEach((q,i)=>{const ch=ST.choices[i];if(ch!==undefined){a++;if(ch===q.c)cor++;}});
+  return{a,cor};
+}
+
+/* ── Render ── */
+function render(){
+  const root=document.getElementById("quiz-root");root.innerHTML="";
+  WEEKS.forEach(wk=>{
+    const wd=document.createElement("div");wd.className="wk-div";
+    wd.innerHTML=`<div class="wk-line"></div><div class="wk-lbl">${wk.label}</div><div class="wk-line"></div>`;
+    root.appendChild(wd);
+    QS.forEach((q,i)=>{
+      const n=i+1;if(n<wk.from||n>wk.to)return;
+      root.appendChild(buildCard(i));
+    });
+  });
+  updateProg();
+  if(ST.unlocked)showUnlockedUI();
+  const{a}=stats();if(a===QS.length)showScore();
+}
+
+function buildCard(i){
+  const q=QS[i],n=i+1;
+  const ch=ST.choices[i],done=ch!==undefined,ok=done&&ch===q.c;
+  const card=document.createElement("div");
+  card.className="card"+(done?" answered":"")+(done&&ST.unlocked?(ok?" rv-ok":" rv-bad"):"");
+  card.id="card-"+i;
+  const optsHtml=q.o.map((opt,j)=>{
+    let cls="ob";
+    if(done&&j===ch)cls+=" sel";
+    if(done&&ST.unlocked){if(j===q.c)cls+=" rv-ok";else if(j===ch&&j!==q.c)cls+=" rv-bad";}
+    return`<button class="${cls}"${done?" disabled":""} onclick="choose(${i},${j})">
+      <span class="ol">${L[j]}</span><span>${opt}</span></button>`;
+  }).join("");
+  let badge="";
+  if(done&&ST.unlocked){
+    badge=`<div class="ab show ${ok?"ok":"bad"}">`
+      +(ok?`✅ Correct! Answer: <strong>${L[q.c]}. ${q.o[q.c]}</strong>`
+          :`❌ You chose ${L[ch]}. Correct: <strong>${L[q.c]}. ${q.o[q.c]}</strong>`)
+      +`</div>`;
+  }
+  card.innerHTML=`<div class="qh">
+    <div class="qn">${String(n).padStart(2,"0")}</div>
+    <div class="qt">${q.t}</div></div>
+    <div class="options" id="o-${i}">${optsHtml}</div>${badge}`;
+  return card;
+}
+
+/* ── Choose ── */
+function choose(i,j){
+  if(ST.choices[i]!==undefined)return;
+  ST.choices[i]=j;save();
+  const q=QS[i],card=document.getElementById("card-"+i);
+  const btns=card.querySelectorAll(".ob");
+  btns.forEach(b=>b.disabled=true);
+  // Only show neutral "selected" — no correct/wrong colour yet
+  btns[j].classList.add("sel");
+  card.classList.add("answered");
+  if(ST.unlocked){applyReveal(i,j,q,btns,card);}
+  updateProg();
+  const{a}=stats();if(a===QS.length)setTimeout(showScore,400);
+}
+
+function applyReveal(i,j,q,btns,card){
+  btns.forEach((b,k)=>{
+    if(k===q.c)b.classList.add("rv-ok");
+    else if(k===j&&k!==q.c)b.classList.add("rv-bad");
+  });
+  card.classList.remove("rv-ok","rv-bad");
+  card.classList.add(j===q.c?"rv-ok":"rv-bad");
+  // Badge
+  let ab=card.querySelector(".ab");
+  if(!ab){ab=document.createElement("div");card.appendChild(ab);}
+  ab.className="ab show "+(j===q.c?"ok":"bad");
+  ab.innerHTML=j===q.c
+    ?`✅ Correct! Answer: <strong>${L[q.c]}. ${q.o[q.c]}</strong>`
+    :`❌ You chose ${L[j]}. Correct: <strong>${L[q.c]}. ${q.o[q.c]}</strong>`;
+}
+
+/* ── Progress ── */
+function updateProg(){
+  const{a,cor}=stats();
+  const pct=Math.round(a/QS.length*100);
+  document.getElementById("pbar-in").style.width=pct+"%";
+  document.getElementById("plabel").textContent=`${a} / ${QS.length} answered`;
+  const sl=document.getElementById("score-live");
+  if(a>0&&ST.unlocked){sl.textContent=`Score: ${cor} / ${a}`;sl.classList.add("show");}
+}
+
+/* ── Score ── */
+function showScore(){
+  const{cor}=stats();
+  const pct=Math.round(cor/QS.length*100);
+  const rows=[[90,"🏆 Outstanding!","You have mastered the material!"],[75,"🎉 Well Done!","Great — review the highlighted errors."],[60,"👍 Good Effort!","You're on track. Go over the answers."],[0,"📖 Keep Studying","Review the notes and try again."]];
+  const[,title,msg]=rows.find(([t])=>pct>=t);
+  if(ST.unlocked){
+    document.getElementById("score-circle").textContent=pct+"%";
+    document.getElementById("score-title").textContent=title;
+    document.getElementById("score-msg").textContent=`You scored ${cor} / ${QS.length}. ${msg}`;
+  }else{
+    document.getElementById("score-circle").textContent="–";
+    document.getElementById("score-title").textContent="Quiz Complete!";
+    document.getElementById("score-msg").textContent="Unlock the answer key to see your score.";
+  }
+  document.getElementById("score-panel").classList.add("show");
+  document.getElementById("score-panel").scrollIntoView({behavior:"smooth"});
+}
+
+/* ── Unlock UI ── */
+function showUnlockedUI(){
+  document.getElementById("ui").style.display="none";
+  document.getElementById("unlocked-bar").classList.add("show");
+  updateProg();
+}
+function revealAll(){
+  QS.forEach((q,i)=>{
+    const card=document.getElementById("card-"+i);if(!card)return;
+    const ch=ST.choices[i];if(ch===undefined)return;
+    const btns=card.querySelectorAll(".ob");
+    applyReveal(i,ch,q,btns,card);
+  });
+  updateProg();
+  const{a}=stats();if(a===QS.length)showScore();
+}
+
+/* ── Password ── */
+document.getElementById("btn-open").addEventListener("click",()=>{
+  document.getElementById("overlay").classList.add("show");
+  setTimeout(()=>document.getElementById("pw-input").focus(),50);
+});
+document.getElementById("pw-close").addEventListener("click",()=>document.getElementById("overlay").classList.remove("show"));
+document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")document.getElementById("overlay").classList.remove("show");});
+document.getElementById("pw-submit").addEventListener("click",tryUnlock);
+document.getElementById("pw-input").addEventListener("keydown",e=>{if(e.key==="Enter")tryUnlock();});
+
+async function tryUnlock(){
+  const v=document.getElementById("pw-input").value;
+  const h=await sha256(v);
+  if(h===HASH){
+    ST.unlocked=true;save();
+    document.getElementById("overlay").classList.remove("show");
+    document.getElementById("pw-input").value="";
+    document.getElementById("pw-err").textContent="";
+    showUnlockedUI();revealAll();
+  }else{
+    document.getElementById("pw-err").textContent="❌ Incorrect password.";
+    document.getElementById("pw-input").value="";
+    document.getElementById("pw-input").focus();
+  }
+}
+
+/* ── Anti-cheat ── */
+document.addEventListener("contextmenu",e=>e.preventDefault());
+document.addEventListener("copy",e=>{e.preventDefault();return false;});
+document.addEventListener("cut",e=>{e.preventDefault();return false;});
+document.addEventListener("paste",e=>{if(document.activeElement?.id!=="pw-input"){e.preventDefault();return false;}});
+document.addEventListener("selectstart",e=>{if(document.activeElement?.id!=="pw-input"){e.preventDefault();return false;}});
+document.addEventListener("dragstart",e=>e.preventDefault());
+document.addEventListener("keydown",e=>{
+  const inPw=document.activeElement?.id==="pw-input";
+  const k=e.key.toLowerCase();
+  const ctrl=e.ctrlKey||e.metaKey;
+  if(ctrl&&["c","a","s","p","u","x","i","j"].includes(k)){e.preventDefault();return false;}
+  if(ctrl&&e.shiftKey&&["i","j","c"].includes(k)){e.preventDefault();return false;}
+  if(k==="f12"){e.preventDefault();return false;}
+  if(k==="printscreen"){e.preventDefault();navigator.clipboard?.writeText("").catch(()=>{});return false;}
+  // Allow typing in password field
+  if(inPw)return;
+});
+document.addEventListener("visibilitychange",()=>{
+  document.body.style.filter=document.hidden?"blur(14px)":"";
+});
+
+render();
+</script>
+</body>
+</html>
