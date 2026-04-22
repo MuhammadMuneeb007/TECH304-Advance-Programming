@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CPU, Core, Thread, and Multiprocessing Simulator</title>
+  <style>
+    :root {
+      --bg: #f7f5ef;
+      --bg-accent: #fde6cd;
+      --panel: #ffffff;
+      --panel-soft: #fff8ef;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #d6d3d1;
+      --accent: #f97316;
+      --accent-2: #0ea5e9;
+      --accent-3: #22c55e;
+      --warn: #f59e0b;
+      --danger: #dc2626;
+      --shadow: 0 16px 40px rgba(120, 53, 15, 0.12);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Lucida Sans Unicode", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at -10% -10%, #fff6e7 0%, transparent 70%),
+        radial-gradient(1200px 900px at 110% 10%, #eaf7ff 0%, transparent 70%),
+        linear-gradient(180deg, var(--bg) 0%, #f3f4f6 100%);
+    }
+
+    .wrap {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    h1, h2, h3 {
+      margin: 0 0 10px;
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero .card:first-child {
+      background: linear-gradient(140deg, #fff7ed 0%, #ffffff 65%);
+    }
+
+    .title {
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: 0.2px;
+      margin-bottom: 8px;
+      color: #7c2d12;
+    }
+
+    .sub {
+      margin-top: 8px;
+      font-size: 15px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .badge {
+      border: 1px solid #fed7aa;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #9a3412;
+      background: #fff4e6;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 355px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .controls h2,
+    .sim h2,
+    .results h2 {
+      font-size: 22px;
+      margin-bottom: 14px;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      margin-bottom: 8px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .field input[type="range"],
+    .field input[type="number"],
+    .field select,
+    .field input[type="text"] {
+      width: 100%;
+    }
+
+    .field input[type="range"] {
+      accent-color: var(--accent);
+    }
+
+    .field input[type="number"],
+    .field select,
+    .field input[type="text"] {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 14px;
+      background: #ffffff;
+      color: var(--text);
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .secondary {
+      background: var(--accent-2);
+      color: #ffffff;
+    }
+
+    .ghost {
+      background: #dbeafe;
+      color: #1e3a8a;
+    }
+
+    .danger {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .simArea {
+      display: grid;
+      gap: 14px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .stat {
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .stat .k {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .stat .v {
+      font-size: 22px;
+      font-weight: 900;
+      color: #111827;
+    }
+
+    .machine {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      background: linear-gradient(180deg, #ffffff, #fffbf5);
+      min-height: 420px;
+    }
+
+    .machineHead {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .machineTitle {
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .machineSub {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .cpuGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .cpuBox {
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 10px;
+      background: #f8fafc;
+    }
+
+    .cpuBox h4 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      color: #334155;
+    }
+
+    .coreGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+      gap: 10px;
+    }
+
+    .core {
+      height: 96px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      background: #f1f5f9;
+      position: relative;
+      overflow: hidden;
+      padding: 8px;
+    }
+
+    .coreLabel {
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+      margin-bottom: 4px;
+    }
+
+    .threadTrack {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 10px;
+      height: 46px;
+      border-radius: 10px;
+      background: #e2e8f0;
+      overflow: hidden;
+    }
+
+    .threadDot {
+      position: absolute;
+      top: 10px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.2);
+      transition: left 0.14s linear;
+    }
+
+    .threadDot.alt {
+      top: 22px;
+      background: var(--accent-2);
+      box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.2);
+    }
+
+    .threadDot.sync {
+      background: var(--warn);
+      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+    }
+
+    .threadTag {
+      position: absolute;
+      top: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      font-weight: 800;
+      color: #111827;
+    }
+
+    .progressWrap {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: #fffefb;
+    }
+
+    .barBlock {
+      margin-top: 10px;
+    }
+
+    .barHead {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .barTrack {
+      margin-top: 6px;
+      height: 14px;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: #f1f5f9;
+      overflow: hidden;
+    }
+
+    .barFill {
+      height: 100%;
+      width: 0%;
+      transition: width 0.12s linear;
+    }
+
+    .runtimeFill {
+      background: linear-gradient(90deg, var(--accent), #fb923c);
+    }
+
+    .workFill {
+      background: linear-gradient(90deg, var(--accent-2), #38bdf8);
+    }
+
+    .phaseLegend {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .phaseLegend span {
+      padding: 4px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid transparent;
+    }
+
+    .pill.ready {
+      background: #e0f2fe;
+      color: #075985;
+      border-color: #bae6fd;
+    }
+
+    .pill.running {
+      background: #dcfce7;
+      color: #166534;
+      border-color: #bbf7d0;
+    }
+
+    .pill.waiting {
+      background: #fef3c7;
+      color: #92400e;
+      border-color: #fde68a;
+    }
+
+    .pill.done {
+      background: #ede9fe;
+      color: #5b21b6;
+      border-color: #ddd6fe;
+    }
+
+    .results .small {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    .configTable {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 13px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .configTable th,
+    .configTable td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 9px 8px;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    .configTable th {
+      background: #fff7ed;
+      color: #9a3412;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .configTable tbody tr:hover {
+      background: #fffbeb;
+    }
+
+    .configTable tbody tr.selected {
+      background: #fef3c7;
+    }
+
+    .phaseBar {
+      width: 180px;
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      display: flex;
+    }
+
+    .phaseSerial {
+      background: #fb923c;
+      height: 100%;
+    }
+
+    .phaseParallel {
+      background: #38bdf8;
+      height: 100%;
+    }
+
+    .phaseOverhead {
+      background: #facc15;
+      height: 100%;
+    }
+
+    .actionBtn {
+      border: 1px solid #cbd5e1;
+      border-radius: 9px;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-weight: 800;
+      background: #ffffff;
+      color: #334155;
+      cursor: pointer;
+      margin-right: 6px;
+      box-shadow: none;
+    }
+
+    .actionBtn:hover {
+      background: #f8fafc;
+    }
+
+    .charts {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .chartCard {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fffefb;
+      padding: 12px;
+      min-height: 260px;
+    }
+
+    .chartCard h3 {
+      font-size: 14px;
+      color: #7c2d12;
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    canvas {
+      width: 100%;
+      height: 210px;
+      display: block;
+      background: #ffffff;
+      border-radius: 10px;
+    }
+
+    @media (max-width: 1150px) {
+      .hero,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .charts {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .title {
+        font-size: 28px;
+      }
+
+      .phaseBar {
+        width: 120px;
+      }
+
+      .configTable {
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .wrap {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="card">
+        <div class="title">CPU, Core, Thread, and Multiprocessing Simulator</div>
+        <p class="sub">
+          Explore how execution time changes when you vary CPUs, cores, and worker threads.
+          This version links the animation timeline directly to the same process-time model used by the estimator.
+        </p>
+        <div class="legend">
+          <span class="badge">CPU = physical package</span>
+          <span class="badge">Core = execution unit</span>
+          <span class="badge">Thread = worker stream</span>
+          <span class="badge">Process time = serial + parallel + overhead</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Timing model used</h2>
+        <p>
+          Total process time is estimated with three phases:
+          serial work, parallel work split by effective workers, and synchronization overhead.
+        </p>
+        <p style="margin-top:10px;">
+          Total time = serial work + (parallel work / effective workers) + overhead
+        </p>
+        <p class="small" style="margin-top:10px;">
+          The animation clock now runs on this exact timeline, so visual completion and estimated runtime stay aligned.
+        </p>
+      </div>
+    </section>
+
+    <section class="grid">
+      <aside class="controls card">
+        <h2>Controls</h2>
+
+        <div class="field">
+          <label>
+            <span>Number of CPUs</span>
+            <strong id="cpuCountVal">1</strong>
+          </label>
+          <input id="cpuCount" type="range" min="1" max="8" value="1" />
+          <div class="hint">A CPU is one physical processor package.</div>
+        </div>
+
+        <div class="field">
+          <label>
+            <span>Cores per CPU</span>
+            <strong id="coresPerCpuVal">4</strong>
+          </label>
+          <input id="coresPerCpu" type="range" min="1" max="16" value="4" />
+          <div class="hint">Each core can run one active worker in this model.</div>
+        </div>
+
+        <div class="field">
+          <label>
+            <span>Threads used by program</span>
+            <strong id="threadCountVal">4</strong>
+          </label>
+          <input id="threadCount" type="range" min="1" max="64" value="4" />
+          <div class="hint">More threads than cores introduces waiting and contention.</div>
+        </div>
+
+        <div class="field">
+          <label>
+            <span>Total work units</span>
+            <strong id="workUnitsVal">1000</strong>
+          </label>
+          <input id="workUnits" type="range" min="100" max="10000" step="100" value="1000" />
+          <div class="hint">Total workload size.</div>
+        </div>
+
+        <div class="field">
+          <label>
+            <span>Parallel fraction (%)</span>
+            <strong id="parallelFractionVal">80</strong>
+          </label>
+          <input id="parallelFraction" type="range" min="0" max="100" value="80" />
+          <div class="hint">How much of the workload can run in parallel.</div>
+        </div>
+
+        <div class="field">
+          <label>
+            <span>Overhead per extra thread (%)</span>
+            <strong id="overheadVal">3</strong>
+          </label>
+          <input id="overhead" type="range" min="0" max="20" value="3" />
+          <div class="hint">Scheduling and synchronization overhead model.</div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="configName">Configuration label</label>
+            <input id="configName" type="text" value="Config 1" />
+          </div>
+          <div class="field">
+            <label for="animationSpeed">Animation speed</label>
+            <select id="animationSpeed">
+              <option value="0.6">Slow</option>
+              <option value="1" selected>Normal</option>
+              <option value="1.8">Fast</option>
+              <option value="3">Very fast</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btns">
+          <button class="primary" id="addConfigBtn">Add configuration</button>
+          <button class="secondary" id="playBtn">Play animation</button>
+          <button class="ghost" id="pauseBtn">Pause</button>
+          <button class="danger" id="clearBtn">Clear all</button>
+        </div>
+      </aside>
+
+      <main class="simArea">
+        <section class="sim card">
+          <h2>Live simulation</h2>
+
+          <div class="stats">
+            <div class="stat">
+              <div class="k">Total cores</div>
+              <div class="v" id="statTotalCores">4</div>
+            </div>
+            <div class="stat">
+              <div class="k">Effective workers</div>
+              <div class="v" id="statEffectiveWorkers">4</div>
+            </div>
+            <div class="stat">
+              <div class="k">Estimated time</div>
+              <div class="v" id="statEstimatedTime">280.0</div>
+            </div>
+            <div class="stat">
+              <div class="k">Speedup vs 1 worker</div>
+              <div class="v" id="statSpeedup">2.94x</div>
+            </div>
+            <div class="stat">
+              <div class="k">Current phase</div>
+              <div class="v" id="statPhase">Serial</div>
+            </div>
+          </div>
+
+          <div class="machine">
+            <div class="machineHead">
+              <div>
+                <div class="machineTitle">Machine view</div>
+                <div class="machineSub" id="machineSummary">1 CPU - 4 cores per CPU - 4 threads</div>
+              </div>
+              <span class="pill ready" id="statusPill">Ready</span>
+            </div>
+
+            <div id="cpuGrid" class="cpuGrid"></div>
+          </div>
+
+          <div class="progressWrap">
+            <div class="barBlock">
+              <div class="barHead">
+                <span>Runtime progress</span>
+                <span id="runtimeLabel">0.0 / 280.0</span>
+              </div>
+              <div class="barTrack">
+                <div class="barFill runtimeFill" id="runtimeFill"></div>
+              </div>
+            </div>
+
+            <div class="barBlock">
+              <div class="barHead">
+                <span>Work completed</span>
+                <span id="workLabel">0.0%</span>
+              </div>
+              <div class="barTrack">
+                <div class="barFill workFill" id="workFill"></div>
+              </div>
+            </div>
+
+            <div class="phaseLegend">
+              <span>Serial phase</span>
+              <span>Parallel phase</span>
+              <span>Sync overhead phase</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="results card">
+          <h2>Saved configurations</h2>
+          <p>Store multiple setups, compare timing, and run any saved configuration directly.</p>
+
+          <table class="configTable" id="configTable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>CPUs</th>
+                <th>Cores / CPU</th>
+                <th>Total cores</th>
+                <th>Threads</th>
+                <th>Time</th>
+                <th>Speedup</th>
+                <th>Phase graph</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="configBody"></tbody>
+          </table>
+
+          <div class="small" id="emptyState">No saved configurations yet.</div>
+
+          <div class="charts">
+            <div class="chartCard">
+              <h3>Estimated time by configuration</h3>
+              <canvas id="timeChart"></canvas>
+            </div>
+            <div class="chartCard">
+              <h3>Speedup by configuration</h3>
+              <canvas id="speedChart"></canvas>
+            </div>
+          </div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <script>
+    const els = {
+      cpuCount: document.getElementById("cpuCount"),
+      coresPerCpu: document.getElementById("coresPerCpu"),
+      threadCount: document.getElementById("threadCount"),
+      workUnits: document.getElementById("workUnits"),
+      parallelFraction: document.getElementById("parallelFraction"),
+      overhead: document.getElementById("overhead"),
+      configName: document.getElementById("configName"),
+      animationSpeed: document.getElementById("animationSpeed"),
+
+      cpuCountVal: document.getElementById("cpuCountVal"),
+      coresPerCpuVal: document.getElementById("coresPerCpuVal"),
+      threadCountVal: document.getElementById("threadCountVal"),
+      workUnitsVal: document.getElementById("workUnitsVal"),
+      parallelFractionVal: document.getElementById("parallelFractionVal"),
+      overheadVal: document.getElementById("overheadVal"),
+
+      statTotalCores: document.getElementById("statTotalCores"),
+      statEffectiveWorkers: document.getElementById("statEffectiveWorkers"),
+      statEstimatedTime: document.getElementById("statEstimatedTime"),
+      statSpeedup: document.getElementById("statSpeedup"),
+      statPhase: document.getElementById("statPhase"),
+
+      machineSummary: document.getElementById("machineSummary"),
+      cpuGrid: document.getElementById("cpuGrid"),
+      statusPill: document.getElementById("statusPill"),
+
+      runtimeFill: document.getElementById("runtimeFill"),
+      runtimeLabel: document.getElementById("runtimeLabel"),
+      workFill: document.getElementById("workFill"),
+      workLabel: document.getElementById("workLabel"),
+
+      addConfigBtn: document.getElementById("addConfigBtn"),
+      playBtn: document.getElementById("playBtn"),
+      pauseBtn: document.getElementById("pauseBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      configBody: document.getElementById("configBody"),
+      emptyState: document.getElementById("emptyState"),
+      timeChart: document.getElementById("timeChart"),
+      speedChart: document.getElementById("speedChart")
+    };
+
+    let animationFrame = null;
+    let startTs = null;
+    let pausedSimTime = 0;
+    let isPlaying = false;
+
+    let configs = [];
+    let selectedConfigId = null;
+    let configCounter = 1;
+
+    let runContext = null;
+
+    function readState() {
+      const state = {
+        cpus: Number(els.cpuCount.value),
+        coresPerCpu: Number(els.coresPerCpu.value),
+        threads: Number(els.threadCount.value),
+        workUnits: Number(els.workUnits.value),
+        parallelFraction: Number(els.parallelFraction.value) / 100,
+        overheadPct: Number(els.overhead.value) / 100,
+        animationSpeed: Number(els.animationSpeed.value),
+        label: (els.configName.value || "").trim() || `Config ${configs.length + 1}`
+      };
+      state.totalCores = state.cpus * state.coresPerCpu;
+      return state;
+    }
+
+    function computeTiming(state) {
+      const serialWork = state.workUnits * (1 - state.parallelFraction);
+      const parallelWork = state.workUnits * state.parallelFraction;
+
+      const oversubscriptionRatio = state.threads > state.totalCores
+        ? (state.threads - state.totalCores) / Math.max(1, state.totalCores)
+        : 0;
+
+      const contentionPenalty = 1 + oversubscriptionRatio * 0.3;
+      const effectiveWorkers = Math.max(1, Math.min(state.threads, state.totalCores) / contentionPenalty);
+
+      const parallelTime = parallelWork / effectiveWorkers;
+      const overheadUnits = state.workUnits * state.overheadPct * Math.max(0, state.threads - 1) * 0.06;
+      const totalTime = serialWork + parallelTime + overheadUnits;
+
+      const baselineTime = state.workUnits;
+      const speedup = baselineTime / totalTime;
+
+      return {
+        serialWork,
+        parallelWork,
+        parallelTime,
+        overheadUnits,
+        effectiveWorkers,
+        totalTime,
+        speedup,
+        oversubscriptionRatio
+      };
+    }
+
+    function createConfig(state, forcedId) {
+      const timing = computeTiming(state);
+      return {
+        ...state,
+        ...timing,
+        id: forcedId || configCounter++
+      };
+    }
+
+    function msForConfig(cfg) {
+      return Math.max(1800, (cfg.totalTime * 20) / Math.max(0.2, cfg.animationSpeed));
+    }
+
+    function updateLabels() {
+      els.cpuCountVal.textContent = els.cpuCount.value;
+      els.coresPerCpuVal.textContent = els.coresPerCpu.value;
+      els.threadCountVal.textContent = els.threadCount.value;
+      els.workUnitsVal.textContent = els.workUnits.value;
+      els.parallelFractionVal.textContent = els.parallelFraction.value;
+      els.overheadVal.textContent = els.overhead.value;
+    }
+
+    function phaseAt(cfg, simTime) {
+      const serialEnd = cfg.serialWork;
+      const parallelEnd = cfg.serialWork + cfg.parallelTime;
+      const runtimeProgress = clamp(simTime / cfg.totalTime, 0, 1);
+
+      if (simTime < serialEnd) {
+        const workDone = simTime;
+        return {
+          name: "Serial",
+          activeSlots: 1,
+          waiting: Math.max(0, cfg.threads - 1),
+          workDone,
+          workProgress: clamp(workDone / cfg.workUnits, 0, 1),
+          runtimeProgress,
+          mode: "serial"
+        };
+      }
+
+      if (simTime < parallelEnd) {
+        const parallelElapsed = simTime - serialEnd;
+        const workDone = cfg.serialWork + (parallelElapsed * cfg.effectiveWorkers);
+        return {
+          name: "Parallel",
+          activeSlots: Math.max(1, Math.min(cfg.threads, cfg.totalCores)),
+          waiting: Math.max(0, cfg.threads - cfg.totalCores),
+          workDone,
+          workProgress: clamp(workDone / cfg.workUnits, 0, 1),
+          runtimeProgress,
+          mode: "parallel"
+        };
+      }
+
+      return {
+        name: "Sync overhead",
+        activeSlots: Math.min(1, cfg.totalCores),
+        waiting: Math.max(0, cfg.threads - 1),
+        workDone: cfg.workUnits,
+        workProgress: 1,
+        runtimeProgress,
+        mode: "overhead"
+      };
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function buildMachine(cfg) {
+      els.cpuGrid.innerHTML = "";
+
+      for (let cpu = 0; cpu < cfg.cpus; cpu += 1) {
+        const cpuBox = document.createElement("div");
+        cpuBox.className = "cpuBox";
+
+        const title = document.createElement("h4");
+        title.textContent = `CPU ${cpu + 1}`;
+        cpuBox.appendChild(title);
+
+        const coreGrid = document.createElement("div");
+        coreGrid.className = "coreGrid";
+
+        for (let coreIndex = 0; coreIndex < cfg.coresPerCpu; coreIndex += 1) {
+          const core = document.createElement("div");
+          core.className = "core";
+
+          const label = document.createElement("div");
+          label.className = "coreLabel";
+          label.textContent = `Core ${coreIndex + 1}`;
+
+          const track = document.createElement("div");
+          track.className = "threadTrack";
+
+          core.appendChild(label);
+          core.appendChild(track);
+          coreGrid.appendChild(core);
+        }
+
+        cpuBox.appendChild(coreGrid);
+        els.cpuGrid.appendChild(cpuBox);
+      }
+    }
+
+    function getTracks() {
+      return Array.from(document.querySelectorAll(".threadTrack"));
+    }
+
+    function clearDots() {
+      document.querySelectorAll(".threadDot").forEach((dot) => dot.remove());
+    }
+
+    function setStatus(mode, text) {
+      els.statusPill.className = `pill ${mode}`;
+      els.statusPill.textContent = text;
+    }
+
+    function renderStats(cfg, phase) {
+      els.statTotalCores.textContent = String(cfg.totalCores);
+      els.statEffectiveWorkers.textContent = cfg.effectiveWorkers.toFixed(2).replace(/\.00$/, "");
+      els.statEstimatedTime.textContent = cfg.totalTime.toFixed(1);
+      els.statSpeedup.textContent = `${cfg.speedup.toFixed(2)}x`;
+      els.statPhase.textContent = phase.name;
+      els.machineSummary.textContent = `${cfg.cpus} CPU - ${cfg.coresPerCpu} cores per CPU - ${cfg.threads} threads`;
+    }
+
+    function renderBars(cfg, simTime, phase) {
+      const runtimePct = phase.runtimeProgress * 100;
+      const workPct = phase.workProgress * 100;
+
+      els.runtimeFill.style.width = `${runtimePct}%`;
+      els.workFill.style.width = `${workPct}%`;
+
+      els.runtimeLabel.textContent = `${simTime.toFixed(1)} / ${cfg.totalTime.toFixed(1)}`;
+      els.workLabel.textContent = `${workPct.toFixed(1)}%`;
+    }
+
+    function renderThreads(cfg, simTime, phase) {
+      clearDots();
+      const tracks = getTracks();
+
+      for (let i = 0; i < phase.activeSlots; i += 1) {
+        const track = tracks[i];
+        if (!track) {
+          continue;
+        }
+
+        const dot = document.createElement("div");
+        dot.className = `threadDot${i % 2 === 1 ? " alt" : ""}${phase.mode === "overhead" ? " sync" : ""}`;
+
+        const tag = document.createElement("div");
+        tag.className = "threadTag";
+        tag.textContent = `T${i + 1}`;
+        dot.appendChild(tag);
+
+        const maxLeft = Math.max(0, track.clientWidth - 22);
+        const oscillation = (simTime / Math.max(1, cfg.totalTime)) * (2.2 + cfg.animationSpeed * 0.8);
+        const wave = (oscillation + i * 0.15) % 1;
+        dot.style.left = `${wave * maxLeft}px`;
+
+        track.appendChild(dot);
+      }
+
+      if (phase.mode === "overhead") {
+        setStatus("waiting", "Sync overhead");
+      } else if (phase.waiting > 0 && isPlaying) {
+        setStatus("waiting", `${phase.waiting} waiting`);
+      } else if (isPlaying) {
+        setStatus("running", "Running");
+      } else if (pausedSimTime >= cfg.totalTime) {
+        setStatus("done", "Done");
+      } else {
+        setStatus("ready", "Ready");
+      }
+    }
+
+    function renderLive(cfg, simTime) {
+      const phase = phaseAt(cfg, simTime);
+      renderStats(cfg, phase);
+      renderBars(cfg, simTime, phase);
+      renderThreads(cfg, simTime, phase);
+    }
+
+    function setRunContextFromControls(resetClock) {
+      const state = readState();
+      const cfg = createConfig(state, -1);
+      runContext = {
+        cfg,
+        realDurationMs: msForConfig(cfg),
+        source: "controls"
+      };
+
+      selectedConfigId = null;
+      buildMachine(cfg);
+
+      if (resetClock) {
+        pausedSimTime = 0;
+      } else {
+        pausedSimTime = Math.min(pausedSimTime, cfg.totalTime);
+      }
+
+      renderLive(cfg, pausedSimTime);
+      renderConfigs();
+    }
+
+    function tick(ts) {
+      if (!isPlaying || !runContext) {
+        return;
+      }
+
+      const cfg = runContext.cfg;
+      if (!startTs) {
+        startTs = ts - (pausedSimTime / cfg.totalTime) * runContext.realDurationMs;
+      }
+
+      const elapsed = ts - startTs;
+      const simTime = clamp((elapsed / runContext.realDurationMs) * cfg.totalTime, 0, cfg.totalTime);
+
+      pausedSimTime = simTime;
+      renderLive(cfg, simTime);
+
+      if (simTime >= cfg.totalTime) {
+        isPlaying = false;
+        animationFrame = null;
+        setStatus("done", "Done");
+        return;
+      }
+
+      animationFrame = requestAnimationFrame(tick);
+    }
+
+    function play() {
+      if (!runContext) {
+        setRunContextFromControls(false);
+      }
+
+      if (!runContext) {
+        return;
+      }
+
+      if (pausedSimTime >= runContext.cfg.totalTime) {
+        pausedSimTime = 0;
+      }
+
+      isPlaying = true;
+      cancelAnimationFrame(animationFrame);
+      startTs = null;
+      animationFrame = requestAnimationFrame(tick);
+    }
+
+    function pause() {
+      isPlaying = false;
+      cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+      startTs = null;
+
+      if (runContext) {
+        renderLive(runContext.cfg, pausedSimTime);
+      }
+    }
+
+    function resetAnimation() {
+      pause();
+      pausedSimTime = 0;
+      startTs = null;
+      if (runContext) {
+        renderLive(runContext.cfg, 0);
+      }
+    }
+
+    function addConfig() {
+      const cfg = createConfig(readState());
+      configs.push(cfg);
+      selectedConfigId = cfg.id;
+      renderConfigs();
+      renderCharts();
+
+      els.configName.value = `Config ${configs.length + 1}`;
+    }
+
+    function setControlsFromConfig(cfg) {
+      els.cpuCount.value = String(cfg.cpus);
+      els.coresPerCpu.value = String(cfg.coresPerCpu);
+      els.threadCount.value = String(cfg.threads);
+      els.workUnits.value = String(cfg.workUnits);
+      els.parallelFraction.value = String(Math.round(cfg.parallelFraction * 100));
+      els.overhead.value = String(Math.round(cfg.overheadPct * 100));
+      els.animationSpeed.value = String(cfg.animationSpeed);
+      els.configName.value = cfg.label;
+      updateLabels();
+    }
+
+    function loadConfig(id, autoRun) {
+      const cfg = configs.find((item) => item.id === id);
+      if (!cfg) {
+        return;
+      }
+
+      selectedConfigId = id;
+      setControlsFromConfig(cfg);
+
+      pause();
+      pausedSimTime = 0;
+      runContext = {
+        cfg: { ...cfg },
+        realDurationMs: msForConfig(cfg),
+        source: "saved"
+      };
+
+      buildMachine(runContext.cfg);
+      renderLive(runContext.cfg, 0);
+      renderConfigs();
+
+      if (autoRun) {
+        play();
+      }
+    }
+
+    function removeConfig(id) {
+      configs = configs.filter((cfg) => cfg.id !== id);
+      if (selectedConfigId === id) {
+        selectedConfigId = null;
+      }
+      renderConfigs();
+      renderCharts();
+    }
+
+    function renderConfigs() {
+      els.configBody.innerHTML = "";
+      els.emptyState.style.display = configs.length ? "none" : "block";
+
+      configs.forEach((cfg) => {
+        const tr = document.createElement("tr");
+        if (cfg.id === selectedConfigId) {
+          tr.classList.add("selected");
+        }
+
+        const serialPct = clamp((cfg.serialWork / cfg.totalTime) * 100, 0, 100);
+        const parallelPct = clamp((cfg.parallelTime / cfg.totalTime) * 100, 0, 100);
+        const overheadPct = clamp(100 - serialPct - parallelPct, 0, 100);
+
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(cfg.label)}</strong></td>
+          <td>${cfg.cpus}</td>
+          <td>${cfg.coresPerCpu}</td>
+          <td>${cfg.totalCores}</td>
+          <td>${cfg.threads}</td>
+          <td>${cfg.totalTime.toFixed(1)}</td>
+          <td>${cfg.speedup.toFixed(2)}x</td>
+          <td>
+            <div class="phaseBar" title="Serial | Parallel | Overhead">
+              <span class="phaseSerial" style="width:${serialPct.toFixed(2)}%"></span>
+              <span class="phaseParallel" style="width:${parallelPct.toFixed(2)}%"></span>
+              <span class="phaseOverhead" style="width:${overheadPct.toFixed(2)}%"></span>
+            </div>
+          </td>
+          <td>
+            <button class="actionBtn" data-action="load" data-id="${cfg.id}">Load</button>
+            <button class="actionBtn" data-action="run" data-id="${cfg.id}">Run</button>
+            <button class="actionBtn" data-action="delete" data-id="${cfg.id}">Delete</button>
+          </td>
+        `;
+
+        els.configBody.appendChild(tr);
+      });
+    }
+
+    function drawBarChart(canvas, data, valueKey, color, axisLabel) {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const width = Math.max(320, Math.floor(rect.width));
+      const height = 210;
+
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.fillStyle = "#334155";
+      ctx.font = "12px Trebuchet MS";
+
+      if (!data.length) {
+        ctx.fillStyle = "#9ca3af";
+        ctx.fillText("Add configurations to see this chart.", 14, 26);
+        return;
+      }
+
+      const padding = { top: 16, right: 16, bottom: 44, left: 42 };
+      const chartW = width - padding.left - padding.right;
+      const chartH = height - padding.top - padding.bottom;
+
+      const maxVal = Math.max(...data.map((cfg) => cfg[valueKey]));
+      const safeMax = maxVal <= 0 ? 1 : maxVal;
+
+      ctx.strokeStyle = "#e5e7eb";
+      ctx.lineWidth = 1;
+
+      for (let i = 0; i <= 4; i += 1) {
+        const y = padding.top + (chartH * i) / 4;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(width - padding.right, y);
+        ctx.stroke();
+
+        const labelVal = ((4 - i) / 4) * safeMax;
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillText(labelVal.toFixed(1), 4, y + 4);
+      }
+
+      const slotW = chartW / data.length;
+      const barW = Math.max(16, slotW * 0.64);
+
+      data.forEach((cfg, index) => {
+        const val = cfg[valueKey];
+        const barH = (val / safeMax) * chartH;
+        const x = padding.left + index * slotW + (slotW - barW) / 2;
+        const y = padding.top + chartH - barH;
+
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, barW, barH);
+
+        ctx.fillStyle = "#1f2937";
+        ctx.font = "11px Trebuchet MS";
+        ctx.fillText(val.toFixed(1), x, y - 6);
+
+        const shortLabel = cfg.label.length > 8 ? `${cfg.label.slice(0, 8)}.` : cfg.label;
+        ctx.fillStyle = "#475569";
+        ctx.fillText(shortLabel, x, height - 18);
+      });
+
+      ctx.fillStyle = "#64748b";
+      ctx.font = "11px Trebuchet MS";
+      ctx.fillText(axisLabel, padding.left + 2, 12);
+    }
+
+    function renderCharts() {
+      drawBarChart(els.timeChart, configs, "totalTime", "#f97316", "time units");
+      drawBarChart(els.speedChart, configs, "speedup", "#0ea5e9", "speedup factor");
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/[&<>\"']/g, (ch) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+      }[ch]));
+    }
+
+    function clearAll() {
+      pause();
+      configs = [];
+      selectedConfigId = null;
+      configCounter = 1;
+      runContext = null;
+      pausedSimTime = 0;
+      startTs = null;
+
+      renderConfigs();
+      renderCharts();
+      setRunContextFromControls(true);
+    }
+
+    [
+      els.cpuCount,
+      els.coresPerCpu,
+      els.threadCount,
+      els.workUnits,
+      els.parallelFraction,
+      els.overhead,
+      els.animationSpeed,
+      els.configName
+    ].forEach((el) => {
+      el.addEventListener("input", () => {
+        pause();
+        setRunContextFromControls(true);
+      });
+    });
+
+    els.addConfigBtn.addEventListener("click", addConfig);
+    els.playBtn.addEventListener("click", play);
+    els.pauseBtn.addEventListener("click", pause);
+    els.clearBtn.addEventListener("click", clearAll);
+
+    els.configBody.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) {
+        return;
+      }
+
+      const id = Number(button.dataset.id);
+      const action = button.dataset.action;
+
+      if (action === "load") {
+        loadConfig(id, false);
+      } else if (action === "run") {
+        loadConfig(id, true);
+      } else if (action === "delete") {
+        removeConfig(id);
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      renderCharts();
+    });
+
+    updateLabels();
+    setRunContextFromControls(true);
+    renderConfigs();
+    renderCharts();
+  </script>
+</body>
+</html>
